@@ -162,7 +162,7 @@ const LineReader = (PlantesDatabase, writeToDatabase) => {
 			this.lineCount++;
 
 			// console.log("this: ", this);
-			// console.log("line: ", line);
+			console.log("line: ", line);
 			// console.log("line length: ", line.length);
 
 			// var lineSplitArray = line.split('  ');
@@ -203,7 +203,7 @@ const LineReader = (PlantesDatabase, writeToDatabase) => {
 						if(error) {
 							console.log("error adding planet to database: ", error);
 						} else {
-							// console.log("planet added successfully to database: ", result);
+							console.log("planet added successfully to database: ", result);
 						}
 					});
 				}
