@@ -10,7 +10,9 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "aws-sdk": "^2.58.0",
     "docker-links": "^1.0.2",
+    "dynamodb-data-types": "^3.0.0",
     "fast-csv": "^2.4.0",
     "line-by-line": "^0.1.5",
     "lodash": "^4.17.4",
