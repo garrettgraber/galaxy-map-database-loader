@@ -92,29 +92,52 @@ HyperLaneSchema.set('autoIndex', true);
 const HyperLaneModel = mongoose.model('HyperLaneModel', HyperLaneSchema);
 
 
+const emptyCollections = () => {
+
+	console.log("emptyCollections has fired..");
+
+	PlanetModel.remove({}, function (err, result) {
+		if (err) {
+			console.log("error emptying collection: ", err);
+		} else {
+			// console.log("PlanetModel: ", result);
+		}
+		// removed!
+	});
+
+	CoordinateModel.remove({}, function (err, result) {
+		if (err) {
+			console.log("error emptying collection: ", err);
+		} else {
+			// console.log("CoordinateModel: ", result);
+		}
+		// removed!
+	});
+
+	HyperLaneModel.remove({}, function (err, result) {
+		if (err) {
+			console.log("error emptying collection: ", err);
+		} else {
+			// console.log("CoordinateModel: ", result);
+		}
+		// removed!
+	});
+
+	SectorModel.remove({}, function (err, result) {
+		if (err) {
+			console.log("error emptying collection: ", err);
+		} else {
+			// console.log("CoordinateModel: ", result);
+		}
+		// removed!
+	});	
+};
+
 const totalPlanets = () => {
 
 	PlanetModel.count({}, function(err, count) {
 
 		console.log("Total Planets in Database: ", count);
-
-	});
-};
-
-const totalCoordinates = () => {
-
-	CoordinateModel.count({}, function(err, count) {
-
-		console.log("Total Coordinates in Database: ", count);
-
-	});
-};
-
-const coordinatesWithPlanets = () => {
-
-	PlanetModel.find({}, function (err, docs) {
-	  // docs.forEach
-	 	console.log("planets: ", docs);
 
 	});
 };
@@ -140,29 +163,6 @@ const searchCoordinate = (currentCoordinates) => {
 	PlanetModel.find({coordinates: currentCoordinates}, function(err, docs) {
 	  // docs.forEach
 	 	console.log("hidden coordinates: ", docs);
-	});
-};
-
-const emptyCollections = () => {
-
-	console.log("emptyCollections has fired..");
-
-	PlanetModel.remove({}, function (err, result) {
-		if (err) {
-			console.log("error emptying collection: ", err);
-		} else {
-			// console.log("PlanetModel: ", result);
-		}
-		// removed!
-	});
-
-	CoordinateModel.remove({}, function (err, result) {
-		if (err) {
-			console.log("error emptying collection: ", err);
-		} else {
-			// console.log("CoordinateModel: ", result);
-		}
-		// removed!
 	});
 };
 
@@ -258,6 +258,16 @@ const createCoordinate = (coordinateValue) => {
 	});
 };
 
+const totalCoordinates = () => {
+
+	CoordinateModel.count({}, function(err, count) {
+
+		console.log("Total Coordinates in Database: ", count);
+
+	});
+};
+
+
 
 
 module.exports = {
@@ -265,7 +275,6 @@ module.exports = {
 	totalPlanets: totalPlanets,
 	totalCoordinates: totalCoordinates,
 	totalSectors: totalSectors,
-	coordinatesWithPlanets: coordinatesWithPlanets,
 	getAllPlanets: getAllPlanets,
 	searchCoordinate: searchCoordinate,
 	emptyCollections: emptyCollections,
