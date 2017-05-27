@@ -272,17 +272,16 @@ const totalCoordinates = () => {
 
 module.exports = {
 	connectToDatabase: connectToDatabase,
+	emptyCollections: emptyCollections,
 	totalPlanets: totalPlanets,
 	totalCoordinates: totalCoordinates,
 	totalSectors: totalSectors,
 	getAllPlanets: getAllPlanets,
 	searchCoordinate: searchCoordinate,
-	emptyCollections: emptyCollections,
-	createPlanet: createPlanet,
 	findPlanetAndUpdate: findPlanetAndUpdate,
 	findOnePlanet: findOnePlanet,
+	createPlanet: createPlanet,
 	createHyperLane: createHyperLane,
 	createSector: createSector,
-	totalSectors: totalSectors,
 	createCoordinate: createCoordinate
 };
