@@ -336,7 +336,7 @@ const LineReader = (PlantesDatabase, writeToDatabase) => {
 
 		    for(let currentSector of sectorSet) {
 
-		    	// console.log("currentSector: ", currentSector);
+		    	console.log("currentSector: ", currentSector);
 
 		  //   	SectorModel.create({name: currentSector}, function(error, result) {
 
@@ -364,6 +364,7 @@ const LineReader = (PlantesDatabase, writeToDatabase) => {
 
 
 				DatabaseController.totalSectors();
+				// console.log("Sectors in sectorSet: ", sectorSet.size);
 
 		    }, 20*1000);
 
@@ -639,7 +640,7 @@ function loadHyperspaceLanes() {
 				const systemA = (!err && doc)? doc.system : "No Name";
 				const systemB = (!err2 && doc2)? doc2.system : "No Name";
 
-				if((!err && doc) && (!err2 && doc2)) {
+				if((doc) && (doc2)) {
 
 					totalPlanetToPlanetLanes += 1;
 

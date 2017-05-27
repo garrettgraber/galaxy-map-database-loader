@@ -219,14 +219,14 @@ const createHyperLane = (HyperSpaceLaneCurrent) => {
 	});
 };
 
-const createSector = (Sector) => {
+const createSector = (sector) => {
 
-	SectorModel.create({name: Sector}, function(error, result) {
+	SectorModel.create({name: sector}, function(error, result) {
 
 		if(error) {
 			console.log("error adding sector to database: ", error);
 		} else {
-			// console.log("planet added successfully to database: ", result);
+			console.log("sector added successfully to database: ", result);
 
 			
 		}
