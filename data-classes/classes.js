@@ -12,6 +12,8 @@ class Planet {
 		this.yGalacticLong = yGalacticLong;
 		this.hasLocation = hasLocation;
 		this.LngLat = LngLat;
+		this.lng = (LngLat.length)? LngLat[0] : null;
+		this.lat = (LngLat.length)? LngLat[1] : null;
 		this.zoom = zoom;
 		this.link = link;
 	}

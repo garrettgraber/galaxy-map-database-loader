@@ -50,6 +50,8 @@ const PlanetSchema = new Schema({
     yGalacticLong : Number,
     hasLocation   : { type : Boolean, "default": false },
     LngLat        : { type : Array , "default" : [] },
+    lng           : { type : Number , "default" : null },
+    lat           : { type : Number , "default" : null },
     zoom		  : Number,
     link          : String
 });
@@ -142,6 +144,15 @@ const totalPlanets = () => {
 	});
 };
 
+const totalPlanetsHasLocation = () => {
+
+	PlanetModel.count({hasLocation: true}, function(err, count) {
+
+		console.log("Total Planets with Lng and Lat in Database: ", count);
+
+	});	
+};
+
 const getAllPlanets = () => {
 
 	PlanetModel.find({}, function (err, docs) {
@@ -173,18 +184,20 @@ const createPlanet = (PlanetCurrent) => {
 		if(error) {
 			console.log("error adding planet to database: ", error);
 		} else {
-			console.log("planet added successfully to database: ", result);
+			// console.log("planet added successfully to database: ", result);
 		}
 	});
 };
 
-const findPlanetAndUpdate = (SearchItem, UpdateItem) => {
+const findPlanetAndUpdate = (SearchItem, UpdateItem, cb) => {
 
-	PlanetModel.findOneAndUpdate(SearchItem, UpdateItem, function(err, doc){
+	PlanetModel.findOneAndUpdate(SearchItem, UpdateItem, {new: true}, function(err, doc){
 		if(err) {
-			console.log("err: ", err);
+			// console.log("err: ", err);
+			cb(err, {});
 		} else {
 			// console.log("System has added coordinates: ", doc);
+			cb(null, doc);
 		}
 	});		
 };
@@ -195,25 +208,31 @@ const findOnePlanet = (SearchItem, cb) => {
 
 		if(err) {
 
-			cb(err, null);
+			cb(err, {status: false, doc: null});
+
+		} else if(doc === null) {
+
+			cb(null, {status: false, doc: null});
 
 		} else {
 
-			cb(null, doc);
+			cb(null, {status: true, doc: doc});
 
 		}
 
 	});
 };
 
-const createHyperLane = (HyperSpaceLaneCurrent) => {
+const createHyperLane = (HyperSpaceLaneCurrent, cb) => {
 
 	HyperLaneModel.create(HyperSpaceLaneCurrent, function(error, result) {
 
 		if(error) {
 			console.log("error uploading hyperspace: ", error);
+			cb(error, {});
 		} else {
 			// console.log("hyperspace data uploaded: ", result);
+			cb(null, result);
 		}
 
 	});
@@ -226,7 +245,7 @@ const createSector = (sector) => {
 		if(error) {
 			console.log("error adding sector to database: ", error);
 		} else {
-			console.log("sector added successfully to database: ", result);
+			// console.log("sector added successfully to database: ", result);
 
 			
 		}
@@ -280,6 +299,7 @@ module.exports = {
 	searchCoordinate: searchCoordinate,
 	findPlanetAndUpdate: findPlanetAndUpdate,
 	findOnePlanet: findOnePlanet,
+	totalPlanetsHasLocation: totalPlanetsHasLocation,
 	createPlanet: createPlanet,
 	createHyperLane: createHyperLane,
 	createSector: createSector,
