@@ -129,6 +129,19 @@ const LineReader = (PlantesDatabase, writeToDatabase) => {
 			}
 
 
+			for(let j of coordinateSetLetter) {
+
+				for(let k of coordinateSetNumber) {
+
+					let gridCoordinate = j + k;
+
+					coordinateSet.add(gridCoordinate);
+
+				}
+
+			}
+
+
 			for (let coordinateTempValue of coordinateSet) {
 				// console.log(coordinateTempValue);
 
@@ -267,6 +280,14 @@ DatabaseController.connectToDatabase(function(err, res) {
 
 });
 
+
+function getDatabaseStats() {
+
+	DatabaseController.totalPlanets();
+	DatabaseController.totalCoordinates();
+	DatabaseController.totalPlanetsHasLocation();
+	DatabaseController.totalSectors();
+}
 
 function getCoordinatesFromGeoJson(callback) {
 
@@ -436,8 +457,7 @@ function loadHyperspaceLanes() {
 		console.log("Planet to Empty Space hyperspace lanes: ", totalPlanetToEmptyLanes);
 		console.log("Empty Space to Empty Space hyperspace lanes: ", totalEmptyToEmptyLanes);
 
-		DatabaseController.totalPlanetsHasLocation();
-		DatabaseController.totalSectors();
+		getDatabaseStats();
 
 	});
 

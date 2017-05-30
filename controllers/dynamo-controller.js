@@ -171,13 +171,15 @@ function connectToDatabase(cb) {
 
 	createAllTables(TableSchemaArray, function(err, res) {
 
-		if(err) {
-			cb(err, {status: false});
+		cb(err, {status: res});
 
-		} else {
-			cb(null, {status: true});
+		// if(err) {
+		// 	cb(err, {status: res});
 
-		}
+		// } else {
+		// 	cb(null, {status: res});
+
+		// }
 
 	});
 };
