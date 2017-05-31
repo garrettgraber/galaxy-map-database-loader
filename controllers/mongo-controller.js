@@ -287,6 +287,7 @@ const totalCoordinates = () => {
 };
 
 
+
 module.exports = {
 	connectToDatabase: connectToDatabase,
 	emptyCollections: emptyCollections,

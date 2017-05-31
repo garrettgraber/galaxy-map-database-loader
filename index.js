@@ -22,13 +22,17 @@ let DatabaseController;
 
 if(DatabaseLinks.hasOwnProperty('mongo')) {
 
+	console.log("Using mongo...");
 	DatabaseController = require('./controllers/mongo-controller.js');
 
 } else if(DatabaseLinks.hasOwnProperty('dynamodb')) {
 
+	console.log("Using dynamo...");
 	DatabaseController = require('./controllers/dynamo-controller.js');
 
 } else {
+
+	// DatabaseController = require('./controllers/dynamo-controller.js');
 
 	console.log("No database selected. Exiting!");
 	process.exit(1);
@@ -39,7 +43,7 @@ if(DatabaseLinks.hasOwnProperty('mongo')) {
 console.log("DatabaseController: ", DatabaseController);
 
 
-const LineReader = (PlantesDatabase, writeToDatabase) => {
+const LineReader = (writeToDatabase) => {
 
 	return {
 
@@ -48,10 +52,6 @@ const LineReader = (PlantesDatabase, writeToDatabase) => {
 		nonPlanetFound: 0,
 
 		readLine(line) {
-
-			if(this.lineCount === 2) {
-				// console.log("PlantesDatabase: ", PlantesDatabase);
-			}
 
 			this.lineCount++;
 
@@ -222,12 +222,17 @@ const LineReader = (PlantesDatabase, writeToDatabase) => {
 
 
 
-DatabaseController.connectToDatabase(function(err, res) {
+DatabaseController.connectToDatabase(function(errorConnect, resultConnect) {
 
-	const LineReaderMasterObject = LineReader(res, writeToDatabaseGlobal);
+	console.log("Starting database loading: ", resultConnect);
+	console.log("Error connecting to database: ", errorConnect);
+
+	const LineReaderMasterObject = LineReader(writeToDatabaseGlobal);
 
 	lr.on('error', function (err) {
 		// 'err' contains error object
+
+		console.log("lr error: ", err);
 	});
 
 	lr.on('line', function (line) {
@@ -268,7 +273,14 @@ DatabaseController.connectToDatabase(function(err, res) {
 
 					console.log("No error loading planet data!");
 
-					loadHyperspaceLanes();
+					loadHyperspaceLanes(function(errorHyperspace) {
+
+						// console.log("db: ", resultConnect.database);
+
+						// getDatabaseSize(resultConnect.database.db);
+
+					});
+
 
 				}
 
@@ -352,7 +364,7 @@ function loadPlanet(planet, cb) {
 }
 
 
-function loadHyperspaceLanes() {
+function loadHyperspaceLanes(cb) {
 
 	const HyperspaceLanes = JSON.parse(fs.readFileSync('./data/hyperspace.geojson', 'utf8'));
 
@@ -459,8 +471,20 @@ function loadHyperspaceLanes() {
 
 		getDatabaseStats();
 
+		cb(errorEach);
+
 	});
 
+}
+
+
+function getDatabaseSize(db) {
+
+	const collectionsArray = db.getCollectionNames();
+
+	console.log("collectionsArray: ", collectionsArray);
+
+	// db.foo.stats(1024 * 1024);
 }
 
 
