@@ -341,9 +341,6 @@ function loadPlanet(planet, cb) {
 	const lat = planet.geometry.coordinates[1];
 	const lng = planet.geometry.coordinates[0];
 
-
-	console.log("lat: ", lat);
-
 	const UpdateItem = {
 		xGalactic: x,
 		yGalactic: y,
@@ -382,10 +379,24 @@ function loadHyperspaceLanes(cb) {
 
 	async.eachSeries(HyperspaceLanes.features, function(hyperspaceLane, callbackEach) {
 
-		const hyperspaceLaneProps = hyperspaceLane.properties;
+		let hyperspaceLaneProps = hyperspaceLane.properties;
 		let hyperspaceCoordinates = hyperspaceLane.geometry.coordinates[0];
 		let startCoordinates = hyperspaceCoordinates[0];
+		let startCoordinatesLat = startCoordinates[1];
+		let startCoordinatesLng = startCoordinates[0];
+		let Start = {
+			lat: startCoordinatesLat,
+			lng: startCoordinatesLng
+		};
+
 		let endCoordintes = hyperspaceCoordinates[ hyperspaceCoordinates.length - 1 ];
+		let endCoordintesLat = endCoordintes[1];
+		let endCoordintesLng = endCoordintes[0];
+		let End = {
+			lat: endCoordintesLat,
+			lng: endCoordintesLng
+		};
+
 		let startSystem, endSystem;
 
 		async.parallel([
@@ -430,6 +441,8 @@ function loadHyperspaceLanes(cb) {
 
 			}
 
+
+
 			const TempHyperSpaceLane = new HyperSpaceLane(
 				hyperspaceLaneProps.hyperspace, 
 				systemA,
@@ -437,7 +450,9 @@ function loadHyperspaceLanes(cb) {
 				startCoordinates,
 				endCoordintes,
 				hyperspaceLaneProps.length,
-				hyperspaceLaneProps.link
+				hyperspaceLaneProps.link,
+				Start,
+				End
 			);
 
 			console.log("TempHyperSpaceLane: ", TempHyperSpaceLane);

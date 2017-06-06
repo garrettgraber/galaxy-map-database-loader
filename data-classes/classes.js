@@ -24,7 +24,7 @@ module.exports.Planet = Planet;
 
 
 class HyperSpaceLane {
-	constructor(hyperspace, start, end, startCoords, endCoords, length, link) {
+	constructor(hyperspace, start, end, startCoords, endCoords, length, link, Start, End) {
 		this.hyperspace = hyperspace || "No Name";
 		this.start = start;
 		this.end = end;
@@ -32,6 +32,8 @@ class HyperSpaceLane {
 		this.endCoords = endCoords;
 		this.length = length;
 		this.link = link || "No Link";
+		this.Start = Start;
+		this.End = End;
 	}
 };
 
