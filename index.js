@@ -338,6 +338,11 @@ function loadPlanet(planet, cb) {
 	const lngLat = planet.geometry.coordinates;
 	const zoom = planet.properties.zm;
 	const link = planet.properties.link;
+	const lat = planet.geometry.coordinates[1];
+	const lng = planet.geometry.coordinates[0];
+
+
+	console.log("lat: ", lat);
 
 	const UpdateItem = {
 		xGalactic: x,
@@ -346,6 +351,8 @@ function loadPlanet(planet, cb) {
 		yGalacticLong: yLong,
 		hasLocation: true,
 		LngLat: lngLat,
+		lat: lat,
+		lng: lng,
 		zoom: zoom,
 		link: link
 	};
