@@ -330,36 +330,77 @@ function getCoordinatesFromGeoJson(callback) {
 
 function loadPlanet(planet, cb) {
 
-	const systemName = planet.properties.name;
-	const x = planet.properties.x;
-	const y = planet.properties.y;
-	const xLong = planet.properties.point_x;
-	const yLong = planet.properties.point_y;
-	const lngLat = planet.geometry.coordinates;
+	const system = planet.properties.name;
+	const sector = [planet.properties.sector];
+	const region = planet.properties.region;
+	const coordinates = planet.properties.grid;
+	const xGalactic = planet.properties.x;
+	const yGalactic = planet.properties.y;
+	const xGalacticLong = planet.properties.point_x;
+	const yGalacticLong = planet.properties.point_y;
+	const LngLat = planet.geometry.coordinates;
 	const zoom = planet.properties.zm;
 	const link = planet.properties.link;
 	const lat = planet.geometry.coordinates[1];
 	const lng = planet.geometry.coordinates[0];
+	const hasLocation = true;
 
-	const UpdateItem = {
-		xGalactic: x,
-		yGalactic: y,
-		xGalacticLong: xLong,
-		yGalacticLong: yLong,
-		hasLocation: true,
-		LngLat: lngLat,
-		lat: lat,
-		lng: lng,
-		zoom: zoom,
-		link: link
-	};
+	const FocusedPlanet = new Planet(
+		system,
+		sector,
+		region,
+		coordinates,
+		xGalactic,
+		yGalactic,
+		xGalacticLong,
+		yGalacticLong,
+		hasLocation,
+		LngLat,
+		lng,
+		lat,
+		zoom,
+		link
+	);
 
-	DatabaseController.findPlanetAndUpdate({system: systemName}, UpdateItem, function(err, doc){
+
+	console.log("FocusedPlanet: ", FocusedPlanet);
+	// const UpdateItem = {
+	// 	system: systemName
+	// 	region: region,
+	// 	sector: [sector],
+	// 	coordinates: grid,
+	// 	xGalactic: x,
+	// 	yGalactic: y,
+	// 	xGalacticLong: xLong,
+	// 	yGalacticLong: yLong,
+	// 	hasLocation: true,
+	// 	LngLat: lngLat,
+	// 	lat: lat,
+	// 	lng: lng,
+	// 	zoom: zoom,
+	// 	link: link
+	// };
+
+
+	DatabaseController.findPlanetAndUpdate({system: system}, FocusedPlanet, function(err, doc){
 		if(err) {
 			console.log("err: ", err);
 			cb(err, {});
 		} else if(doc === null) {
 			cb(null, false);
+
+			// UpdateItem.system = systemName;
+
+			// console.log("planet: ", UpdateItem);
+
+			// PlanetFound = new Planet(UpdateItem);
+
+			// console.log("Test Planet: ", )
+
+
+			DatabaseController.createPlanet(FocusedPlanet);
+
+
 		} else {
 			cb(null, true);
 		}
@@ -455,12 +496,10 @@ function loadHyperspaceLanes(cb) {
 				End
 			);
 
-			console.log("TempHyperSpaceLane: ", TempHyperSpaceLane);
+			// console.log("TempHyperSpaceLane: ", TempHyperSpaceLane);
 
 			totalHyperspaceLanes += 1;
 
-			console.log("Total Hyperspace Lanes: ", totalHyperspaceLanes);
-			console.log("Total Planet To Planet Lanes: ", totalPlanetToPlanetLanes);
 
 			DatabaseController.createHyperLane(TempHyperSpaceLane, function(errorCreate, resultCreate) {
 
@@ -488,6 +527,9 @@ function loadHyperspaceLanes(cb) {
 
 		}
 
+
+		console.log("Total Hyperspace Lanes: ", totalHyperspaceLanes);
+		console.log("Total Planet To Planet Lanes: ", totalPlanetToPlanetLanes);
 		console.log("Planet to Empty Space hyperspace lanes: ", totalPlanetToEmptyLanes);
 		console.log("Empty Space to Empty Space hyperspace lanes: ", totalEmptyToEmptyLanes);
 
