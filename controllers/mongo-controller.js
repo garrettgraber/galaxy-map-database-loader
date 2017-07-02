@@ -4,6 +4,8 @@ const mongoose = require('mongoose');
 const DatabaseLinks = require('docker-links').parseLinks(process.env);
 const Planet = require('../data-classes/classes.js').Planet;
 const HyperSpaceLane = require('../data-classes/classes.js').HyperSpaceLane;
+const Alphabets = require('../data-classes/alphabets.js');
+
 
 console.log("Planet: ", Planet);
 console.log("HyperSpaceLane: ", HyperSpaceLane);
@@ -12,7 +14,6 @@ console.log("DatabaseLinks: ", DatabaseLinks);
 
 
 const Schema = mongoose.Schema;
-
 
 
 function connectToDatabase(cb) {
@@ -40,25 +41,42 @@ function connectToDatabase(cb) {
 
 
 const PlanetSchema = new Schema({
-    system        : String,
-    sector        : { type : Array , "default" : [] },
-    region        : String,
-    coordinates   : String,
-    xGalactic     : Number,
-    yGalactic     : Number,
-    xGalacticLong : Number,
-    yGalacticLong : Number,
-    hasLocation   : { type : Boolean, "default": false },
-    LngLat        : { type : Array , "default" : [] },
-    lng           : { type : Number , "default" : null },
-    lat           : { type : Number , "default" : null },
-    zoom		  : Number,
-    link          : String
+    system         : String,
+    sector         : { type : Array , "default" : [] },
+    region         : String,
+    coordinates    : String,
+    xGalactic      : Number,
+    yGalactic      : Number,
+    xGalacticLong  : Number,
+    yGalacticLong  : Number,
+    hasLocation    : { type : Boolean, "default": false },
+    LngLat         : { type : Array , "default" : [] },
+    lng            : { type : Number , "default" : null },
+    lat            : { type : Number , "default" : null },
+    zoom		   : Number,
+    link           : String
 });
 
 PlanetSchema.set('autoIndex', true);
 
 const PlanetModel = mongoose.model('PlanetModel', PlanetSchema);
+
+
+
+
+const HyperspaceNodeSchema = new Schema({
+    system         : String,
+    lng            : { type : Number , "default" : null },
+    lat            : { type : Number , "default" : null },
+    hyperspaceLanes: { type : Array , "default" : [] },
+    nodeId         : { type : Number, "default" : null }
+});
+
+HyperspaceNodeSchema.set('autoIndex', true);
+
+const HyperspaceNodeModel = mongoose.model('HyperspaceNodeModel', HyperspaceNodeSchema);
+
+
 
 
 const CoordinateSchema = new Schema({
@@ -80,11 +98,12 @@ const SectorModel = mongoose.model('SectorModel', SectorSchema);
 
 
 const HyperLaneSchema = new Schema({
-	hyperspace: String,
+	name: String,
+	hyperspaceHash: String,
 	start: String,
 	end: String,
-	startCoords: { type : Array , "default" : [] },
-	endCoords: { type : Array , "default" : [] },
+	startCoordsLngLat: { type : Array , "default" : [] },
+	endCoordsLngLat: { type : Array , "default" : [] },
 	length: Number,
 	link: String
 });
@@ -92,6 +111,139 @@ const HyperLaneSchema = new Schema({
 HyperLaneSchema.set('autoIndex', true);
 
 const HyperLaneModel = mongoose.model('HyperLaneModel', HyperLaneSchema);
+
+
+const createHyperspaceNode = (HyperspaceNodeCurrent, cb) => {
+
+	HyperspaceNodeModel.find({lat: HyperspaceNodeCurrent.lat, lng: HyperspaceNodeCurrent.lng}, function(err, docs) {
+
+	 	if(err) {
+
+	 		cb(err, null);
+
+	 	} else if(docs.length == 0) {
+
+			HyperspaceNodeModel.create(HyperspaceNodeCurrent, function(error, result) {
+
+				if(error) {
+					console.log("error adding hyperspace node to database: ", error);
+					cb(error, null);
+				} else {
+					// console.log("hyperspace node added successfully to database: ", HyperspaceNodeCurrent.system);
+					cb(null, null);
+				}
+			});
+
+		} else {
+
+			const result = docs[0];
+			const foundHyperspaceLane = HyperspaceNodeCurrent.hyperspaceLanes[0];
+			let updatedHyperlanes = [];
+
+			if(!result.hyperspaceLanes.includes(foundHyperspaceLane)) {
+
+				updatedHyperlanes = HyperspaceNodeCurrent.hyperspaceLanes.concat(result.hyperspaceLanes);
+
+				HyperspaceNodeModel.findOneAndUpdate({system: result.system}, {hyperspaceLanes: updatedHyperlanes}, {new: true}, function(errLaneAdd, docLaneAdd){
+					if(errLaneAdd) {
+						console.log("errLaneAdd: ", errLaneAdd);
+						cb(errLaneAdd, null);
+					} else {
+						// console.log("Hyperspace Node has added hyperspace lane: ", docLaneAdd);
+						cb(null, null);
+					}
+				});
+
+			} else {
+
+				if(result.system !== HyperspaceNodeCurrent.system) {
+
+					console.log("\nresult.system: ", result.system);
+					console.log("HyperspaceNodeCurrent.system: ", HyperspaceNodeCurrent.system);
+					cb(null, result.system);
+
+
+				} else {
+
+					cb(null, null);
+
+				}
+
+			}
+
+		}
+
+	});
+
+};
+
+
+
+
+const findHyperspaceNodeAndUpdate = (SearchItem, UpdateItem, cb) => {
+
+	HyperspaceNodeModel.findOneAndUpdate(SearchItem, UpdateItem, {new: true}, function(err, doc){
+		if(err) {
+			// console.log("err: ", err);
+			cb(err, {});
+		} else {
+			// console.log("System has added coordinates: ", doc);
+			cb(null, doc);
+		}
+	});		
+};
+
+
+
+const findOneHyperspaceNode = (SearchItem, cb) => {
+
+	HyperspaceNodeModel.findOne(SearchItem,function(err, doc){
+
+		if(err) {
+
+			cb(err, {status: false, doc: null});
+
+		} else if(doc === null) {
+
+			cb(null, {status: false, doc: doc});
+
+		} else {
+
+			cb(null, {status: true, doc: doc});
+
+		}
+
+	});		
+};
+
+
+
+const getAllHyperspaceNodes = (cb) => {
+
+	HyperspaceNodeModel.find({}, function (err, docs) {
+	  // docs.forEach
+		if(err) {
+			console.log("error getting all hyperspace nodes: ", err);
+			cb(err, {});
+		} else {
+			cb(null, docs);
+		}
+
+	});
+};
+
+
+
+
+const totalHyperspaceNodes = () => {
+
+	HyperspaceNodeModel.count({}, function(err, count) {
+
+		console.log("Total Hyperspace Nodes in Database: ", count);
+
+	});
+};
+
 
 
 const emptyCollections = () => {
@@ -135,6 +287,7 @@ const emptyCollections = () => {
 	});	
 };
 
+
 const totalPlanets = () => {
 
 	PlanetModel.count({}, function(err, count) {
@@ -153,11 +306,16 @@ const totalPlanetsHasLocation = () => {
 	});	
 };
 
-const getAllPlanets = () => {
+const getAllPlanets = (cb) => {
 
 	PlanetModel.find({}, function (err, docs) {
 	  // docs.forEach
-	 	console.log("planets: ", docs);
+		if(err) {
+			console.log("error getting all planets: ", err);
+			cb(err, {});
+		} else {
+			cb(null, docs);
+		}
 
 	});
 };
@@ -173,7 +331,7 @@ const searchCoordinate = (currentCoordinates) => {
 
 	PlanetModel.find({coordinates: currentCoordinates}, function(err, docs) {
 	  // docs.forEach
-	 	console.log("hidden coordinates: ", docs);
+	 	// console.log("hidden coordinates: ", docs);
 	});
 };
 
@@ -223,7 +381,7 @@ const findOnePlanet = (SearchItem, cb) => {
 	});
 };
 
-const createHyperLane = (HyperSpaceLaneCurrent, cb) => {
+const createHyperspaceLane = (HyperSpaceLaneCurrent, cb) => {
 
 	HyperLaneModel.create(HyperSpaceLaneCurrent, function(error, result) {
 
@@ -231,12 +389,41 @@ const createHyperLane = (HyperSpaceLaneCurrent, cb) => {
 			console.log("error uploading hyperspace: ", error);
 			cb(error, {});
 		} else {
-			// console.log("hyperspace data uploaded: ", result);
+			// console.log("\nhyperspace lane created: ", result);
 			cb(null, result);
 		}
 
 	});
 };
+
+
+
+const getAllHyperspaceLanes = (cb) => {
+
+	HyperLaneModel.find({}, function (err, docs) {
+	  // docs.forEach
+		if(err) {
+			console.log("error getting all hyperspace lanes: ", err);
+			cb(err, {});
+		} else {
+			cb(null, docs);
+		}
+
+	});
+};
+
+
+
+
+const totalHyperspaceLanes = () => {
+
+	HyperLaneModel.count({}, function(err, count) {
+
+		console.log("Total Hyperspace Lanes in Database: ", count);
+
+	});
+};
+
 
 const createSector = (sector) => {
 
@@ -290,17 +477,25 @@ const totalCoordinates = () => {
 
 module.exports = {
 	connectToDatabase: connectToDatabase,
+	createHyperspaceNode: createHyperspaceNode,
+	totalHyperspaceNodes: totalHyperspaceNodes,
+	findHyperspaceNodeAndUpdate: findHyperspaceNodeAndUpdate,
+	findOneHyperspaceNode: findOneHyperspaceNode,
 	emptyCollections: emptyCollections,
 	totalPlanets: totalPlanets,
 	totalCoordinates: totalCoordinates,
 	totalSectors: totalSectors,
 	getAllPlanets: getAllPlanets,
+	getAllHyperspaceNodes: getAllHyperspaceNodes,
 	searchCoordinate: searchCoordinate,
 	findPlanetAndUpdate: findPlanetAndUpdate,
 	findOnePlanet: findOnePlanet,
 	totalPlanetsHasLocation: totalPlanetsHasLocation,
 	createPlanet: createPlanet,
-	createHyperLane: createHyperLane,
+	createHyperspaceLane: createHyperspaceLane,
+	totalHyperspaceLanes: totalHyperspaceLanes,
+	getAllHyperspaceLanes: getAllHyperspaceLanes,
 	createSector: createSector,
 	createCoordinate: createCoordinate
 };
+

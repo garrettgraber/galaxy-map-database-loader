@@ -1,5 +1,5 @@
 
-FROM node:7-slim
+FROM node:8-slim
 
 # Update packages
 RUN apt-get update -y --fix-missing;

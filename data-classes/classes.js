@@ -15,7 +15,8 @@ class Planet {
 		lat = null,
 		lng = null,
 		zoom = 5,
-		link = '')
+		link = ''
+		)
 	{
 		this.system = systemValue;
 		this.sector = sectorValue;
@@ -163,12 +164,13 @@ module.exports.Planet = Planet;
 
 
 class HyperSpaceLane {
-	constructor(hyperspace, start, end, startCoords, endCoords, length, link, Start, End) {
-		this.hyperspace = hyperspace || "No Name";
+	constructor(name, hyperspaceName, start, end, startCoordsLngLat, endCoordsLngLat, length, link, Start, End) {
+		this.name = name;
+		this.hyperspaceName = hyperspaceName;
 		this.start = start;
 		this.end = end;
-		this.startCoords = startCoords;
-		this.endCoords = endCoords;
+		this.startCoordsLngLat = startCoordsLngLat;
+		this.endCoordsLngLat = endCoordsLngLat;
 		this.length = length;
 		this.link = link || "No Link";
 		this.Start = Start;
