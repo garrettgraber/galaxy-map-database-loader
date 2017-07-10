@@ -2,13 +2,14 @@ const fs = require('fs'),
 	_ = require('lodash'),
 	LineByLineReader = require('line-by-line'),
 	csv = require("fast-csv"),
-    lr = new LineByLineReader('./data/StarWarsText2.txt'),
-    async = require('async'),
-    uuidv1 = require('uuid/v1'),
-    uuidv4 = require('uuid/v4');
+  lr = new LineByLineReader('./data/StarWarsText2.txt'),
+  async = require('async'),
+  uuidv1 = require('uuid/v1'),
+  uuidv4 = require('uuid/v4');
 
 const Planet = require('./data-classes/classes.js').Planet;
 const HyperSpaceLane = require('./data-classes/classes.js').HyperSpaceLane;
+const HyperSpaceNode = require('./data-classes/classes.js').HyperSpaceNode;
 const Alphabets = require('./data-classes/alphabets.js');
 
 const writeToDatabaseGlobal = true;
@@ -39,6 +40,7 @@ const LineReader = (writeToDatabase) => {
 		readLine(line) {
 
 			this.lineCount++;
+			console.log("current line: ", this.lineCount);
 			var systemValue = line.slice(0, 44).trim().replace(/\\/g, '');
 			// console.log("systemValue: ", systemValue);
 			var sectorValue = line.slice(44, 67).trim().replace(/\(/g,'/').replace(/\)/g,'').split('/');
@@ -71,16 +73,14 @@ const LineReader = (writeToDatabase) => {
 		},
 
 		analyzeData(searchTermObject) {
-
+			console.log("Started analyzeData...");
 			var coordinateSet = new Set();
 			var coordinateSetLetter = new Set();
 			var coordinateSetNumber = new Set();
 			var systemSet = new Set();
 			var sectorSet = new Set();
 			var regionSet = new Set();
-
 			for(var i=0; i < this.masterPlanetArray.length; i++) {
-
 				var currentPlanet = this.masterPlanetArray[i];
 				var currentCoordinates = currentPlanet.coordinates;
 				var currentSystem = currentPlanet.system;
@@ -107,34 +107,30 @@ const LineReader = (writeToDatabase) => {
 				systemSet.add(currentSystem);
 				regionSet.add(currentPlanet.region);
 			}
-
 			for(let coordinateLetter of coordinateSetLetter) {
 				for(let coordinateNumber of coordinateSetNumber) {
 					const gridCoordinate = coordinateLetter + coordinateNumber;
 					coordinateSet.add(gridCoordinate);
 				}
 			}
-
 			for (let coordinateTempValue of coordinateSet) {
 				// console.log(coordinateTempValue);
 				if(writeToDatabase) {
 					DatabaseController.createCoordinate(coordinateTempValue);
 				}
 			}
-
-		    console.log("Number of coordinates: ", coordinateSet.size);
-		    // console.log("coordinateSetLetter: ", coordinateSetLetter);
-		    // console.log("coordinateSetNumber: ", coordinateSetNumber);
-		    // console.log("region set: ", regionSet);
-		    console.log("Number of Letter coordinates: ", coordinateSetLetter.size);
-		    console.log("Number of Number coordinates: ", coordinateSetNumber.size);
-		    console.log("Total number of sectors: ", sectorSet.size);
-		    console.log("Total number of regions: ", regionSet.size);
-		    console.log("Number of systems: ", systemSet.size);
-		    console.log("Total Planets: ", this.masterPlanetArray.length);
-
-		    var regionFoundIndex = _.findIndex(this.masterPlanetArray, function(o) { return o.region === searchTermObject.region; });
-		    var systemFoundIndex = _.findIndex(this.masterPlanetArray, function(o) { return o.system === searchTermObject.system; });
+	    console.log("Number of coordinates: ", coordinateSet.size);
+	    // console.log("coordinateSetLetter: ", coordinateSetLetter);
+	    // console.log("coordinateSetNumber: ", coordinateSetNumber);
+	    // console.log("region set: ", regionSet);
+	    console.log("Number of Letter coordinates: ", coordinateSetLetter.size);
+	    console.log("Number of Number coordinates: ", coordinateSetNumber.size);
+	    console.log("Total number of sectors: ", sectorSet.size);
+	    console.log("Total number of regions: ", regionSet.size);
+	    console.log("Number of systems: ", systemSet.size);
+	    console.log("Total Planets: ", this.masterPlanetArray.length);
+	    var regionFoundIndex = _.findIndex(this.masterPlanetArray, function(o) { return o.region === searchTermObject.region; });
+	    var systemFoundIndex = _.findIndex(this.masterPlanetArray, function(o) { return o.system === searchTermObject.system; });
 			var resultsRegion = _.filter(this.masterPlanetArray,function(item){
 		    	return item.region.indexOf(searchTermObject.region) > -1;
 		    });
@@ -144,7 +140,6 @@ const LineReader = (writeToDatabase) => {
 			var resultsCoordiantes = _.filter(this.masterPlanetArray,function(item){
 		    	return item.coordinates.indexOf(searchTermObject.coordinates) > -1;
 		    });
-
 			if(resultsRegion.length > 0) {
 				// console.log("resultsRegion: ", resultsRegion);
 			}
@@ -155,16 +150,15 @@ const LineReader = (writeToDatabase) => {
 			if(resultsCoordiantes.length > 0) {
 				console.log("resultsCoordiantes: ", resultsCoordiantes);
 			}
+	    console.log("\n\nresultsRegion: ", resultsRegion.length);
+	    console.log('resultsCoordiantes: ', resultsCoordiantes.length);
+	    console.log("resultsSystem: ", resultsSystem);
+	    console.log("systemFoundIndex: ", systemFoundIndex);
+	    console.log("regionFoundIndex: ", regionFoundIndex);
 
-		    console.log("\n\nresultsRegion: ", resultsRegion.length);
-		    console.log('resultsCoordiantes: ', resultsCoordiantes.length);
-		    console.log("resultsSystem: ", resultsSystem);
-		    console.log("systemFoundIndex: ", systemFoundIndex);
-		    console.log("regionFoundIndex: ", regionFoundIndex);
-
-		    for(let currentSector of sectorSet) {
+	    for(let currentSector of sectorSet) {
 				DatabaseController.createSector(currentSector);
-		    }
+	    }
 		},
 	}
 };
@@ -198,7 +192,6 @@ DatabaseController.connectToDatabase(function(errorConnect, resultConnect) {
 		});
 
 		console.log("LineReaderMasterObject Line Count: ", LineReaderMasterObject.lineCount);
-
 		DatabaseController.totalPlanets();
 		DatabaseController.totalCoordinates();
 
@@ -291,6 +284,8 @@ function loadPlanet(planet, cb) {
 }
 
 function loadHyperspaceLanes(cb) {
+
+	console.log("loading hyperspace lanes...");
 	const HyperspaceLanes = JSON.parse(fs.readFileSync('./data/hyperspace.geojson', 'utf8'));
 	let totalHyperspaceLanes = 0;
 	let totalPlanetToPlanetLanes = 0;
@@ -299,7 +294,14 @@ function loadHyperspaceLanes(cb) {
 
 	async.eachSeries(HyperspaceLanes.features, function(hyperspaceLane, callbackEach) {
 		let hyperspaceLaneProps = hyperspaceLane.properties;
-		let hyperspaceCoordinates = hyperspaceLane.geometry.coordinates[0];
+		// let hyperspaceCoordinates = hyperspaceLane.geometry.coordinates[0];
+		let hyperspaceCoordinates = _.flattenDepth(hyperspaceLane.geometry.coordinates, 1);
+		// _.forEach(hyperspaceCoordinates, function(el) {
+		//   el.reverse();
+		// });
+		// hyperspaceCoordinates = _.map(hyperspaceCoordinates, function(el) {
+		// 	return el.reverse();
+		// });
 		let startCoordinates = hyperspaceCoordinates[0];
 		let startCoordinatesLat = startCoordinates[1];
 		let startCoordinatesLng = startCoordinates[0];
@@ -319,11 +321,43 @@ function loadHyperspaceLanes(cb) {
 		async.parallel([
 			function(callback) {
 				DatabaseController.findOnePlanet({LngLat: startCoordinates}, function(err, res) {
-					callback(err, res);
+					// (res.doc)? console.log("res found doc: ", res) : console.log("res did not find doc: ", res);
+					if(err) {
+						callback(err, null);
+					} else if(res.doc && res.status) {
+						// console.log("Found planet: ", res.doc.system);
+						callback(null, res);
+					} else {
+						DatabaseController.findOneHyperspaceNode({lat: Start.lat, lng: Start.lng}, function(errorNode, resultNode) {
+							if(errorNode) {
+								console.log("errorNode: ", errorNode);
+								callback(errorNode, null);
+							} else {
+								// console.log("resultNode: ", resultNode);
+								callback(null, resultNode);
+							}
+						});
+					}
 				});
 			}, function(callback) {
 				DatabaseController.findOnePlanet({LngLat: endCoordintes}, function(err2, res2) {
-					callback(err2, res2);
+					// (res2.doc)? console.log("res2 found doc: ", res2) : console.log("res2 did not find doc: ", res2);
+					if(err2) {
+						callback(err2, null);
+					} else if(res2.doc && res2.status) {
+						// console.log("Found planet: ", res2.doc.system);
+						callback(null, res2);
+					} else {
+						DatabaseController.findOneHyperspaceNode({lat: End.lat, lng: End.lng}, function(errorNode, resultNode) {
+							if(errorNode) {
+								console.log("errorNode: ", errorNode);
+								callback(errorNode, null);
+							} else {
+								// console.log("resultNode2: ", resultNode);
+								callback(null, resultNode);
+							}
+						});
+					}
 				});
 			}
 		], function(error, results) {
@@ -344,9 +378,11 @@ function loadHyperspaceLanes(cb) {
 			}
 			if(systemA === null) {
 				systemA = Alphabets.findNodeName();
+				// console.log("Creating hyperspace node A: ", systemA);
 	 		}
 	 		if(systemB === null) {
 				systemB = Alphabets.findNodeName();
+				// console.log("Creating hyperspace node B: ", systemB);
 	 		}
 			// console.log("\nHyperspace Node A: ", systemA);
 			// console.log("systemALat: ", systemALat);
@@ -365,29 +401,38 @@ function loadHyperspaceLanes(cb) {
 
 			const systemACoordinates = [Start.lng, Start.lat];
 			const systemBCoordinates = [End.lng, End.lat];
+			const HyperspaceNodeStart = new HyperSpaceNode(
+				systemA,
+				systemALat,
+				systemALng,
+				[hyperspaceLaneProps.hyperspace],
+				0
+			);
 
 			async.parallel([
-			    function(callbackNode) {
-			        DatabaseController.createHyperspaceNode({
+		    function(callbackNode) {
+	        DatabaseController.createHyperspaceNode({
 						system: systemA,
 						lat: systemALat,
 						lng: systemALng,
-						hyperspaceLanes: [hyperspaceLaneProps.hyperspace]
-					}, function(errorNode, resultNode) {
-						if(errorNode) {
-							console.log("Node creation error: ", errorNode);
-							callbackNode(errorNode, resultNode);
-						} else {
-							callbackNode(null, resultNode);
-						}	
-					});
-			    },
-			    function(callbackNode) {
-			    	DatabaseController.createHyperspaceNode({
+						hyperspaceLanes: [hyperspaceLaneProps.hyperspace],
+						nodeId: 0
+				}, function(errorNode, resultNode) {
+					if(errorNode) {
+						console.log("Node creation error: ", errorNode);
+						callbackNode(errorNode, resultNode);
+					} else {
+						callbackNode(null, resultNode);
+					}	
+				});
+		    },
+		    function(callbackNode) {
+		    	DatabaseController.createHyperspaceNode({
 						system: systemB,
 						lat: systemBLat,
 						lng: systemBLng,
-						hyperspaceLanes: [hyperspaceLaneProps.hyperspace]
+						hyperspaceLanes: [hyperspaceLaneProps.hyperspace],
+						nodeId: 0
 					}, function(errorNode, resultNode) {
 						if(errorNode) {
 							console.log("Node creation error: ", errorNode);
@@ -396,53 +441,54 @@ function loadHyperspaceLanes(cb) {
 							callbackNode(null, resultNode);
 						}
 					});
-			    }
+		    }
 			],
 			function(errorCreate, resultsCreate) {
-			    if(errorCreate) {
-			    	callbackEach(errorCreate);
-			    } else {
-			    	// console.log("resultsCreate: ", resultsCreate);
-			    	let startSystem = resultsCreate[0];
-			    	let endSystem = resultsCreate[1];
+		    if(errorCreate) {
+		    	callbackEach(errorCreate);
+		    } else {
+		    	// console.log("resultsCreate: ", resultsCreate);
+		    	let startSystem = resultsCreate[0];
+		    	let endSystem = resultsCreate[1];
 
-			    	if(startSystem) {
-			    		console.log("startSystem: ", startSystem);
-			    		Alphabets.backOneNodeName();
-			    	}
-			    	if(endSystem) {
-			    		console.log("endSystem: ", endSystem);
-			    		Alphabets.backOneNodeName();
-			    	}
+		    	if(startSystem) {
+		    		console.log("startSystem: ", startSystem);
+		    		Alphabets.backOneNodeName();
+		    	}
+		    	if(endSystem) {
+		    		console.log("endSystem: ", endSystem);
+		    		Alphabets.backOneNodeName();
+		    	}
 
-			    	startSystem = (startSystem)? startSystem : systemA;
-			    	endSystem = (endSystem)? endSystem : systemB;
-			    	const hyperspaceHash = uuidv4();
-			    	console.log("hyperspaceHash: ", hyperspaceHash);
-			    	const hyperspaceNameDesignation = hyperspaceHash;
-			    	const TempHyperSpaceLane = new HyperSpaceLane(
-						hyperspaceLaneProps.hyperspace,
-						hyperspaceNameDesignation,
-						startSystem,
-						endSystem,
-						startCoordinates,
-						endCoordintes,
-						hyperspaceLaneProps.length,
-						hyperspaceLaneProps.link,
-						Start,
-						End
+		    	startSystem = (startSystem)? startSystem : systemA;
+		    	endSystem = (endSystem)? endSystem : systemB;
+		    	const hyperspaceHash = uuidv4();
+		    	// console.log("hyperspaceHash: ", hyperspaceHash);
+		    	// console.log("hyperspaceHash type: ", typeof hyperspaceHash);
+		    	const SpaceLane = new HyperSpaceLane(
+						hyperspaceLaneProps.hyperspace,  // name
+						hyperspaceHash, // hyperspaceHash
+						startSystem, // start
+						endSystem, // end
+						startCoordinates, // startCoordinates
+						endCoordintes, // endCoordintes
+						hyperspaceLaneProps.length, // length
+						hyperspaceLaneProps.link, // link
+						null, // Start Node
+						null, // End Node
+						hyperspaceCoordinates
 					);
-					// console.log("TempHyperSpaceLane: ", TempHyperSpaceLane);
+					// console.log("SpaceLane: ", SpaceLane);
 					totalHyperspaceLanes += 1;
 
-			    	DatabaseController.createHyperspaceLane(TempHyperSpaceLane, function(errorCreate, resultCreate) {
+		    	DatabaseController.createHyperspaceLane(SpaceLane, function(errorCreate, resultCreate) {
 						if(errorCreate) {
 							callbackEach(errorCreate);
 						} else {
 							callbackEach(null);
 						}
 					});
-			    }
+		    }
 			});
 		});
 	}, function(errorEach) {
@@ -468,29 +514,29 @@ function getDatabaseSize(db) {
 function getCoordinatesFromCSV() {
 	const stream = fs.createReadStream("./data/planets.csv");
 	const csvStream = csv()
-	    .on("data", function(data){
-			const zoom = parseInt(data[2]);
-			console.log("zoom: ", zoom);
-			const systemName = data[11];
-			const y = data[14];
-			const x = data[15];
-			const UpdateItem = {
-				xGalactic: x,
-				yGalactic: y,
-				hasLocation: true,
-				zoom: zoom
-			};
-			// PlanetModel.findOneAndUpdate({system: systemName}, UpdateItem, function(err, doc){
-			// 	if(err) {
-			// 		console.log("err: ", err);
-			// 	} else {
-			// 		console.log("System has added coordinates: ", doc);
-			// 	}
-			// });
-			DatabaseController.findPlanetAndUpdate({system: systemName}, UpdateItem);
-	    })
-	    .on("end", function(){
-	         console.log("done reading planets.csv");
-	    });
+    .on("data", function(data){
+		const zoom = parseInt(data[2]);
+		console.log("zoom: ", zoom);
+		const systemName = data[11];
+		const y = data[14];
+		const x = data[15];
+		const UpdateItem = {
+			xGalactic: x,
+			yGalactic: y,
+			hasLocation: true,
+			zoom: zoom
+		};
+		// PlanetModel.findOneAndUpdate({system: systemName}, UpdateItem, function(err, doc){
+		// 	if(err) {
+		// 		console.log("err: ", err);
+		// 	} else {
+		// 		console.log("System has added coordinates: ", doc);
+		// 	}
+		// });
+		DatabaseController.findPlanetAndUpdate({system: systemName}, UpdateItem);
+    })
+    .on("end", function(){
+         console.log("done reading planets.csv");
+    });
 	stream.pipe(csvStream);
 }

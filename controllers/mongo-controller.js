@@ -5,16 +5,7 @@ const DatabaseLinks = require('docker-links').parseLinks(process.env);
 const Planet = require('../data-classes/classes.js').Planet;
 const HyperSpaceLane = require('../data-classes/classes.js').HyperSpaceLane;
 const Alphabets = require('../data-classes/alphabets.js');
-
-
-console.log("Planet: ", Planet);
-console.log("HyperSpaceLane: ", HyperSpaceLane);
-
-console.log("DatabaseLinks: ", DatabaseLinks);
-
-
 const Schema = mongoose.Schema;
-
 
 function connectToDatabase(cb) {
 
@@ -96,7 +87,6 @@ SectorSchema.set('autoIndex', true);
 
 const SectorModel = mongoose.model('SectorModel', SectorSchema);
 
-
 const HyperLaneSchema = new Schema({
 	name: String,
 	hyperspaceHash: String,
@@ -105,7 +95,12 @@ const HyperLaneSchema = new Schema({
 	startCoordsLngLat: { type : Array , "default" : [] },
 	endCoordsLngLat: { type : Array , "default" : [] },
 	length: Number,
-	link: String
+	link: String,
+	startNodeId: { type : Object, "default" : {} },
+	endNodeId: { type : Object, "default" : {} },
+	coordinates: [
+		[Number, Number]
+	]
 });
 
 HyperLaneSchema.set('autoIndex', true);
@@ -129,7 +124,7 @@ const createHyperspaceNode = (HyperspaceNodeCurrent, cb) => {
 					console.log("error adding hyperspace node to database: ", error);
 					cb(error, null);
 				} else {
-					// console.log("hyperspace node added successfully to database: ", HyperspaceNodeCurrent.system);
+					console.log("hyperspace node added successfully to database: ", HyperspaceNodeCurrent);
 					cb(null, null);
 				}
 			});
@@ -158,8 +153,8 @@ const createHyperspaceNode = (HyperspaceNodeCurrent, cb) => {
 
 				if(result.system !== HyperspaceNodeCurrent.system) {
 
-					console.log("\nresult.system: ", result.system);
-					console.log("HyperspaceNodeCurrent.system: ", HyperspaceNodeCurrent.system);
+					// console.log("\nresult.system: ", result.system);
+					// console.log("HyperspaceNodeCurrent.system: ", HyperspaceNodeCurrent.system);
 					cb(null, result.system);
 
 
@@ -389,7 +384,7 @@ const createHyperspaceLane = (HyperSpaceLaneCurrent, cb) => {
 			console.log("error uploading hyperspace: ", error);
 			cb(error, {});
 		} else {
-			// console.log("\nhyperspace lane created: ", result);
+			console.log("\nhyperspace lane created: ", result);
 			cb(null, result);
 		}
 
