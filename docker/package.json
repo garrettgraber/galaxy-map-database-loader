@@ -12,6 +12,7 @@
   "dependencies": {
     "async": "^2.4.1",
     "aws-sdk": "^2.58.0",
+    "bluebird": "^3.5.0",
     "docker-links": "^1.0.2",
     "dynamodb-data-types": "^3.0.0",
     "fast-csv": "^2.4.0",

@@ -38,14 +38,13 @@ class Planet {
 		this.textWidth = textWidth;
 	}
 
-	starInMapView(map, mapWidth, mapHeight, MapBoundaries) {
-    const CurrentMapBoundaries = map.getBounds();
-    const mapOffSetLng = 0;
-    const mapOffSetLat = 0;
-    const inNorthSouthRange = (MapBoundaries.south < this.lat && this.lat < MapBoundaries.north) ? true : false;
-    const inEastWestRange = (MapBoundaries.west< this.lng && this.lng < MapBoundaries.east) ? true : false;
-    const objectInvView = (inNorthSouthRange && inEastWestRange) ? true : false;
-    return objectInvView;
+	starInMapView(mapWidth, mapHeight, MapBoundaries) {
+	    const mapOffSetLng = 0;
+	    const mapOffSetLat = 0;
+	    const inNorthSouthRange = (MapBoundaries.south < this.lat && this.lat < MapBoundaries.north) ? true : false;
+	    const inEastWestRange = (MapBoundaries.west< this.lng && this.lng < MapBoundaries.east) ? true : false;
+	    const objectInvView = (inNorthSouthRange && inEastWestRange) ? true : false;
+	    return objectInvView;
 	}
 
 	starIsVisible(currentZoom) {
@@ -135,6 +134,38 @@ class HyperSpaceLane {
 		this._start = _start;
 		this._end = _end;
 		this.coordinates = coordinateStringToArray(coordinates);
+	}
+
+
+	// reverseCoordinatesLatLng(coordinatesData) {
+	// 	const coordiantes = coordinatesData[0];
+	// 	console.log("coordinates array: ", coordiantes);
+	// 	const latBefore = coordiantes[0];
+	// 	// const coordinatesLatLng = _.map(coordinatesLngLat, function(el) {
+	// 	// 	console.log("el: ", el);
+	// 	// 	el.reverse();
+	// 	// 	return el;
+	// 	// });
+
+	// 	for(let k of coordiantes) { 
+	// 		k.reverse();
+	// 	}
+	// 	const latAfter = coordiantes[0];
+	// 	console.log("Before and after the same: ", (latBefore === latAfter)? true : false);
+	// 	return coordiantes;
+	// }
+
+
+	reverseLatLng(coordinatesData) {
+		const latBefore = coordinatesData[0][1];
+		for(let k of coordinatesData) {
+			console.log("k before: ", k);
+			k.reverse();
+			console.log("k after: ", k);
+		}
+		const latAfter = coordinatesData[0][0];
+		console.log("Before and after the same: ", (latBefore === latAfter)? true : false);
+		return coordinatesData;
 	}
 };
 

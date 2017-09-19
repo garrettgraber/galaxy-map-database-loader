@@ -20,7 +20,6 @@ function connectToDatabase(cb) {
 	  // we're connected!
 	  	console.log("connected to mongo database ");
 
-
 	  	cb(null, {
 	  		status: true,
 	  		database: db,
@@ -60,7 +59,8 @@ const HyperspaceNodeSchema = new Schema({
     lng            : { type : Number , "default" : null },
     lat            : { type : Number , "default" : null },
     hyperspaceLanes: { type : Array , "default" : [] },
-    nodeId         : { type : Number, "default" : null }
+    nodeId         : { type : Number, "default" : null },
+    loc            : { type : [Number, Number], "default" : [null, null] }
 });
 
 HyperspaceNodeSchema.set('autoIndex', true);
@@ -202,6 +202,8 @@ const findOneHyperspaceNode = (SearchItem, cb) => {
 
 			cb(null, {status: false, doc: doc});
 
+
+
 		} else {
 
 			cb(null, {status: true, doc: doc});
@@ -213,7 +215,7 @@ const findOneHyperspaceNode = (SearchItem, cb) => {
 
 
 
-const getAllHyperspaceNodes = (cb) => {
+const getAllHyperspaceNodes = cb => {
 
 	HyperspaceNodeModel.find({}, function (err, docs) {
 	  // docs.forEach
@@ -240,6 +242,28 @@ const totalHyperspaceNodes = () => {
 };
 
 
+const findNearestNode = SearchItem => {
+
+	// db.runCommand({
+	// 	geoNear: "places",
+	// 	near: [ -74, 40.74 ],
+	// 	spherical: true,
+	// 	distanceMultiplier: 3963.2
+ //   });
+
+}
+
+
+const getNamesOfCollections = () => {
+	db.listCollections().toArray(function (err, names) {
+		if (err) {
+			console.log("err: ", err);
+		} else {
+			console.log("names: ", names);
+		}
+		// mongoose.connection.close();
+    });
+}
 
 const emptyCollections = () => {
 
@@ -384,11 +408,25 @@ const createHyperspaceLane = (HyperSpaceLaneCurrent, cb) => {
 			console.log("error uploading hyperspace: ", error);
 			cb(error, {});
 		} else {
-			console.log("\nhyperspace lane created: ", result);
+			// console.log("\nhyperspace lane created: ", result);
 			cb(null, result);
 		}
 
 	});
+};
+
+
+const findHyperspaceLaneAndUpdate = (SearchItem, UpdateItem, cb) => {
+
+	HyperLaneModel.findOneAndUpdate(SearchItem, UpdateItem, {new: true}, function(err, doc){
+		if(err) {
+			// console.log("err: ", err);
+			cb(err, {});
+		} else {
+			// console.log("System has added coordinates: ", doc);
+			cb(null, doc);
+		}
+	});		
 };
 
 
@@ -488,6 +526,7 @@ module.exports = {
 	totalPlanetsHasLocation: totalPlanetsHasLocation,
 	createPlanet: createPlanet,
 	createHyperspaceLane: createHyperspaceLane,
+	findHyperspaceLaneAndUpdate: findHyperspaceLaneAndUpdate,
 	totalHyperspaceLanes: totalHyperspaceLanes,
 	getAllHyperspaceLanes: getAllHyperspaceLanes,
 	createSector: createSector,
