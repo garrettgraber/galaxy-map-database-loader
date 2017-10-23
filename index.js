@@ -384,16 +384,25 @@ function loadHyperspaceLanes(cb) {
 			const systemALng = (firstResult.doc)? firstResult.doc.lng : Start.lng;
 			const systemBLat = (secondResult.doc)? secondResult.doc.lat : End.lat;
 			const systemBLng = (secondResult.doc)? secondResult.doc.lng : End.lng;
+			let systemAGalacticX = (firstResult.doc)? firstResult.doc.xGalacticLong : null;
+			let systemAGalacticY = (firstResult.doc)? firstResult.doc.yGalacticLong : null;
+			let systemBGalacticX = (secondResult.doc)? secondResult.doc.xGalacticLong : null;
+			let systemBGalacticY = (secondResult.doc)? secondResult.doc.yGalacticLong : null;
 
 			if(hyperspaceLaneProps.hyperspace === null) {
 				hyperspaceLaneProps.hyperspace = Alphabets.findLaneName();
 			}
 			if(systemA === null) {
 				systemA = Alphabets.findNodeName();
+				if(systemALat) { systemAGalacticY = getGalacticYFromLatitude(systemALat) }
+				if(systemALng) { systemAGalacticX = getGalacticXFromLongitude(systemALng) }
+
 				// console.log("Creating hyperspace node A: ", systemA);
 	 		}
 	 		if(systemB === null) {
 				systemB = Alphabets.findNodeName();
+				if(systemBLat) { systemBGalacticY = getGalacticYFromLatitude(systemBLat) }
+				if(systemBLng) { systemBGalacticX = getGalacticXFromLongitude(systemBLng) }
 				// console.log("Creating hyperspace node B: ", systemB);
 	 		}
 			// console.log("\nHyperspace Node A: ", systemA);
@@ -411,15 +420,6 @@ function loadHyperspaceLanes(cb) {
 				totalEmptyToEmptyLanes += 1;
 			}
 
-			// const systemACoordinates = [Start.lng, Start.lat];
-			// const systemBCoordinates = [End.lng, End.lat];
-			// const HyperspaceNodeStart = new HyperSpaceNode(
-			// 	systemA,
-			// 	systemALat,
-			// 	systemALng,
-			// 	[hyperspaceLaneProps.hyperspace],
-			// 	0
-			// );
 
 			async.parallel([
 		    function(callbackNode) {
@@ -427,6 +427,8 @@ function loadHyperspaceLanes(cb) {
 						system: systemA,
 						lat: systemALat,
 						lng: systemALng,
+						xGalacticLong: systemAGalacticX,
+						yGalacticLong: systemAGalacticY,
 						hyperspaceLanes: [hyperspaceLaneProps.hyperspace],
 						nodeId: 0,
 						loc: [systemALng, systemALat]
@@ -444,6 +446,8 @@ function loadHyperspaceLanes(cb) {
 						system: systemB,
 						lat: systemBLat,
 						lng: systemBLng,
+						xGalacticLong: systemBGalacticX,
+						yGalacticLong: systemBGalacticY,
 						hyperspaceLanes: [hyperspaceLaneProps.hyperspace],
 						nodeId: 0,
 						loc: [systemBLng, systemBLat]
@@ -815,3 +819,15 @@ function getCoordinatesFromCSV() {
     });
 	stream.pipe(csvStream);
 }
+
+
+
+function getGalacticYFromLatitude(latitude) {
+  return  (-3.07e-19*(latitude**12)) + (-1.823e-18*(latitude**11)) + (4.871543e-15*(latitude**10)) + (4.1565807e-14*(latitude**9)) + (-2.900986202e-11 * (latitude**8)) + (-1.40444283864e-10*(latitude**7)) + (7.9614373223054e-8*(latitude**6)) + (7.32976568692443e-7*(latitude**5)) + (-0.00009825374539548058*(latitude**4)) + (0.005511093818675318*(latitude**3)) + (0.04346753629461727 * (latitude**2)) + (111.30155374684914 * latitude);
+}
+
+
+function getGalacticXFromLongitude(longitude) {
+  return (111.3194866138503 * longitude);
+}
+
