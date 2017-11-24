@@ -430,7 +430,7 @@ function loadHyperspaceLanes(cb) {
 						xGalacticLong: systemAGalacticX,
 						yGalacticLong: systemAGalacticY,
 						hyperspaceLanes: [hyperspaceLaneProps.hyperspace],
-						nodeId: 0,
+						nodeId: genRandFiveDigit(),
 						loc: [systemALng, systemALat]
 				}, function(errorNode, resultNode) {
 					if(errorNode) {
@@ -449,7 +449,7 @@ function loadHyperspaceLanes(cb) {
 						xGalacticLong: systemBGalacticX,
 						yGalacticLong: systemBGalacticY,
 						hyperspaceLanes: [hyperspaceLaneProps.hyperspace],
-						nodeId: 0,
+						nodeId: genRandFiveDigit(),
 						loc: [systemBLng, systemBLat]
 					}, function(errorNode, resultNode) {
 						if(errorNode) {
@@ -831,3 +831,6 @@ function getGalacticXFromLongitude(longitude) {
   return (111.3194866138503 * longitude);
 }
 
+function genRandFiveDigit() {
+  return Math.floor(Math.random()*89999+10000);
+}

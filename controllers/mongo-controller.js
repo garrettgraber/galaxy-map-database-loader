@@ -43,7 +43,7 @@ const PlanetSchema = new Schema({
     LngLat         : { type : Array , "default" : [] },
     lng            : { type : Number , "default" : null },
     lat            : { type : Number , "default" : null },
-    zoom		   : Number,
+    zoom		   		 : Number,
     link           : String
 });
 
