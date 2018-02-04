@@ -66,7 +66,6 @@ const HyperspaceNodeSchema = new Schema({
 });
 
 HyperspaceNodeSchema.set('autoIndex', true);
-
 const HyperspaceNodeModel = mongoose.model('HyperspaceNodeModel', HyperspaceNodeSchema);
 
 
@@ -75,18 +74,14 @@ const HyperspaceNodeModel = mongoose.model('HyperspaceNodeModel', HyperspaceNode
 const CoordinateSchema = new Schema({
 	coordinates: String,
 });
-
 CoordinateSchema.set('autoIndex', true);
-
 const CoordinateModel = mongoose.model('CoordinateModel', CoordinateSchema);
-
 
 const SectorSchema = new Schema({
 	name: String,
 });
 
 SectorSchema.set('autoIndex', true);
-
 const SectorModel = mongoose.model('SectorModel', SectorSchema);
 
 const HyperLaneSchema = new Schema({
@@ -104,9 +99,7 @@ const HyperLaneSchema = new Schema({
 		[Number, Number]
 	]
 });
-
 HyperLaneSchema.set('autoIndex', true);
-
 const HyperLaneModel = mongoose.model('HyperLaneModel', HyperLaneSchema);
 
 
@@ -171,11 +164,7 @@ const createHyperspaceNode = (HyperspaceNodeCurrent, cb) => {
 		}
 
 	});
-
 };
-
-
-
 
 const findHyperspaceNodeAndUpdate = (SearchItem, UpdateItem, cb) => {
 
@@ -189,8 +178,6 @@ const findHyperspaceNodeAndUpdate = (SearchItem, UpdateItem, cb) => {
 		}
 	});		
 };
-
-
 
 const findOneHyperspaceNode = (SearchItem, cb) => {
 
@@ -215,8 +202,6 @@ const findOneHyperspaceNode = (SearchItem, cb) => {
 	});		
 };
 
-
-
 const getAllHyperspaceNodes = cb => {
 
 	HyperspaceNodeModel.find({}, function (err, docs) {
@@ -231,9 +216,6 @@ const getAllHyperspaceNodes = cb => {
 	});
 };
 
-
-
-
 const totalHyperspaceNodes = () => {
 
 	HyperspaceNodeModel.count({}, function(err, count) {
@@ -243,7 +225,6 @@ const totalHyperspaceNodes = () => {
 	});
 };
 
-
 const findNearestNode = SearchItem => {
 
 	// db.runCommand({
@@ -252,9 +233,7 @@ const findNearestNode = SearchItem => {
 	// 	spherical: true,
 	// 	distanceMultiplier: 3963.2
  //   });
-
-}
-
+};
 
 const getNamesOfCollections = () => {
 	db.listCollections().toArray(function (err, names) {
@@ -307,7 +286,6 @@ const emptyCollections = () => {
 		// removed!
 	});	
 };
-
 
 const totalPlanets = () => {
 
@@ -417,7 +395,6 @@ const createHyperspaceLane = (HyperSpaceLaneCurrent, cb) => {
 	});
 };
 
-
 const findHyperspaceLaneAndUpdate = (SearchItem, UpdateItem, cb) => {
 
 	HyperLaneModel.findOneAndUpdate(SearchItem, UpdateItem, {new: true}, function(err, doc){
@@ -430,8 +407,6 @@ const findHyperspaceLaneAndUpdate = (SearchItem, UpdateItem, cb) => {
 		}
 	});		
 };
-
-
 
 const getAllHyperspaceLanes = (cb) => {
 
@@ -447,9 +422,6 @@ const getAllHyperspaceLanes = (cb) => {
 	});
 };
 
-
-
-
 const totalHyperspaceLanes = () => {
 
 	HyperLaneModel.count({}, function(err, count) {
@@ -458,7 +430,6 @@ const totalHyperspaceLanes = () => {
 
 	});
 };
-
 
 const createSector = (sector) => {
 

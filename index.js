@@ -3,8 +3,7 @@ const fs = require('fs'),
 	LineByLineReader = require('line-by-line'),
 	csv = require("fast-csv"),
 	lr = new LineByLineReader('./data/StarWarsText2.txt'),
-	async = require('async'),
-	uuidv1 = require('uuid/v1'),
+	asyncLib = require('async'),
 	uuidv4 = require('uuid/v4'),
 	Promise = require("bluebird");
 
@@ -16,20 +15,28 @@ const Alphabets = require('./data-classes/alphabets.js');
 const writeToDatabaseGlobal = true;
 const DatabaseLinks = require('docker-links').parseLinks(process.env);
 console.log("DatabaseLinks: ", DatabaseLinks);
-let DatabaseController;
+
+
+// let DatabaseController;
+
+
 let systemsNotInAppendix = 0;
 
-if(DatabaseLinks.hasOwnProperty('mongo')) {
-	console.log("Using mongo...");
-	DatabaseController = require('./controllers/mongo-controller.js');
-	Promise.promisifyAll(DatabaseController);
-} else if(DatabaseLinks.hasOwnProperty('dynamodb')) {
-	console.log("Using dynamo...");
-	DatabaseController = require('./controllers/dynamo-controller.js');
-} else {
-	console.log("No database selected. Exiting!");
-	process.exit(1);
-}
+
+// if(DatabaseLinks.hasOwnProperty('mongo')) {
+// 	console.log("Using mongo...");
+// 	DatabaseController = require('./controllers/mongo-controller.js');
+// 	Promise.promisifyAll(DatabaseController);
+// } else if(DatabaseLinks.hasOwnProperty('dynamodb')) {
+// 	console.log("Using dynamo...");
+// 	DatabaseController = require('./controllers/dynamo-controller.js');
+// } else {
+// 	console.log("No database selected. Exiting!");
+// 	process.exit(1);
+// }
+
+
+const MongoController = require('./controllers/mongo-async-controller.js');
 
 
 const LineReader = (writeToDatabase) => {
@@ -43,13 +50,9 @@ const LineReader = (writeToDatabase) => {
 			this.lineCount++;
 			console.log("current line: ", this.lineCount);
 			var systemValue = line.slice(0, 44).trim().replace(/\\/g, '');
-			// console.log("systemValue: ", systemValue);
 			var sectorValue = line.slice(44, 67).trim().replace(/\(/g,'/').replace(/\)/g,'').split('/');
-			// console.log( (!(sectorValue  instanceof Array))? "Sector is not an array: " + sectorValue : 'Sector is array!');
 			var regionValue = line.slice(67, line.length - 11).trim();
-			// console.log("regionValue: ", regionValue);
 			var coordinatesValue = line.slice(line.length - 11, line.length).trim();
-			// console.log("coordinatesValue: ", coordinatesValue);
 			var notAPlanet = (
 				line.search('Lucasfilm') > -1 ||
 				line.search('SYSTEM') > -1 ||
@@ -57,18 +60,19 @@ const LineReader = (writeToDatabase) => {
 				coordinatesValue === "" ||
 				coordinatesValue === "Appendix"
 			);
-			// if(line.search('Lucasfilm') > -1 || line.search('SYSTEM') > -1 || line.length <= 1 || coordinatesValue === "" || coordinatesValue === "Appendix") {
-			// 	this.nonPlanetFound++;
-
 			if(notAPlanet) {
 				this.nonPlanetFound++;
 			} else {
-
 				var TempPlanet = new Planet(systemValue, sectorValue, regionValue, coordinatesValue);
 				this.masterPlanetArray.push(TempPlanet);
-
 				if(writeToDatabase) {
-					DatabaseController.createPlanet(TempPlanet);
+					// DatabaseController.createPlanet(TempPlanet);
+
+					MongoController.createPlanet(TempPlanet).then(PlanetData => {
+						// console.log("Planet Created: ", PlanetData);
+					}).catch(err => {
+						console.log("Planet Creation error: ", err);
+					});
 				}
 			}
 		},
@@ -91,17 +95,13 @@ const LineReader = (writeToDatabase) => {
 				var letters = /^[A-Z]+$/;
 
 				if(currentCoordinateLetter.match(letters)) {
-					// console.log("Good coordinate letter");
 					coordinateSetLetter.add(currentCoordinateLetter);
 				} else {
 					// console.log("bad coordinate number");
 				}
-
-				// coordinateSetLetter.add(currentCoordinateLetter);
 				for(var j=0; j < currentPlanet.sector.length; j++) {
 					sectorSet.add(currentPlanet.sector[j]);
 				}
-
 				if(!isNaN(currentCoordinateNumberInteger)) {
 					coordinateSetNumber.add(currentCoordinateNumberInteger);
 				}
@@ -115,15 +115,18 @@ const LineReader = (writeToDatabase) => {
 				}
 			}
 			for (let coordinateTempValue of coordinateSet) {
-				// console.log(coordinateTempValue);
 				if(writeToDatabase) {
-					DatabaseController.createCoordinate(coordinateTempValue);
+					// DatabaseController.createCoordinate(coordinateTempValue);
+
+
+					MongoController.createCoordinate(coordinateTempValue).then(CoordinateData => {
+						// console.log("Coordinates created: ", CoordinateData);
+					}).catch(CoordinateError => {
+						console.log("Coordinates error: ", CoordinateError);
+					});
 				}
 			}
 	    console.log("Number of coordinates: ", coordinateSet.size);
-	    // console.log("coordinateSetLetter: ", coordinateSetLetter);
-	    // console.log("coordinateSetNumber: ", coordinateSetNumber);
-	    // console.log("region set: ", regionSet);
 	    console.log("Number of Letter coordinates: ", coordinateSetLetter.size);
 	    console.log("Number of Number coordinates: ", coordinateSetNumber.size);
 	    console.log("Total number of sectors: ", sectorSet.size);
@@ -158,145 +161,270 @@ const LineReader = (writeToDatabase) => {
 	    console.log("regionFoundIndex: ", regionFoundIndex);
 
 	    for(let currentSector of sectorSet) {
-				DatabaseController.createSector(currentSector);
+				// DatabaseController.createSector(currentSector);
+
+
+				MongoController.createSector(currentSector).then(SectorData => {
+					// console.log("SectorData: ", SectorData);
+				}).catch(SectorError => {
+					console.log("SectorError: ", SectorError);
+				});
 	    }
 		},
 	}
 };
 
-
-DatabaseController.connectToDatabase(function(errorConnect, resultConnect) {
-
-	console.log("Starting database loading: ", resultConnect);
-	console.log("Error connecting to database: ", errorConnect);
-	console.log("Starting collections: ", resultConnect.database.collections);
-
-	resultConnect.database.collections.hyperspacenodemodels.createIndex({
-  		"loc": "2d"
-  	}, {
-  		min: [-180.00, -90.00],
-  		max: [180.00, 90.00]
-  	});
-
-  	console.log("created 2d index on hyperspacenodemodels");
+const loadDatabase = () => {
+	// DatabaseController.connectToDatabase(function(errorConnect, resultConnect) {
 
 
-	const LineReaderMasterObject = LineReader(writeToDatabaseGlobal);
+	MongoController.connectToMongo().then(resultConnect => {
 
-	lr.on('error', function (err) {
-		// 'err' contains error object
-		console.log("lr error: ", err);
-	});
+		console.log("Starting database loading: ", resultConnect);
+		console.log("Starting collections: ", resultConnect.database.collections);
 
-	lr.on('line', function (line) {
-		// 'line' contains the current line without the trailing newline character.
-		LineReaderMasterObject.readLine(line);
-	});
-
-	lr.on('end', function () {
-		
-		console.log("Total Planets: ", LineReaderMasterObject.masterPlanetArray.length);
-		console.log("Non Planet Bullshit found: ", LineReaderMasterObject.nonPlanetFound);
-
-		LineReaderMasterObject.analyzeData({
-			region: 'Core Worlds',
-			system: 'Coruscant',
+		resultConnect.database.collections.hyperspacenodemodels.createIndex({
+			"loc": "2d"
+		}, {
+			min: [-180.00, -90.00],
+			max: [180.00, 90.00]
 		});
 
-		console.log("LineReaderMasterObject Line Count: ", LineReaderMasterObject.lineCount);
-		DatabaseController.totalPlanets();
-		DatabaseController.totalCoordinates();
+	  console.log("created 2d index on hyperspacenodemodels");
+		const LineReaderMasterObject = LineReader(writeToDatabaseGlobal);
 
-		if(writeToDatabaseGlobal) {
-			getCoordinatesFromGeoJson(function(error) {
-				if(error) {
-					console.log("error: ", error);
-				} else {
-					console.log("No error loading planet data!");
-					loadHyperspaceLanes(function(errorHyperspace) {});
-				}
+		lr.on('error', function (err) {
+			// 'err' contains error object
+			console.log("lr error: ", err);
+		});
+
+		lr.on('line', function (line) {
+			// 'line' contains the current line without the trailing newline character.
+			LineReaderMasterObject.readLine(line);
+		});
+
+		lr.on('end', function () {
+			
+			console.log("Total Planets: ", LineReaderMasterObject.masterPlanetArray.length);
+			console.log("Non Planet Bullshit found: ", LineReaderMasterObject.nonPlanetFound);
+
+			LineReaderMasterObject.analyzeData({
+				region: 'Core Worlds',
+				system: 'Coruscant',
 			});
-		}
+
+			console.log("LineReaderMasterObject Line Count: ", LineReaderMasterObject.lineCount);
+
+			if(writeToDatabaseGlobal) {
+
+				getCoordinatesFromGeoJsonAsync().then(CoordinateData => {
+
+					console.log("Coordinates from geojson success!");
+
+					loadHyperspaceLanes(function(errorHyperspace) {
+
+						console.log("Hyperspace Lane loading error: ", errorHyperspace);
+
+
+
+						getDatabaseStatsAsync().then(() => {
+							console.log("database stats displayed");
+							process.exit(1);
+						}).catch(errorStats => {
+							console.log("error displaying database stats: ", errorStats);
+						});
+
+
+					});
+
+
+
+				}).catch(error => {
+					console.log("error: ", error);
+				});
+
+
+
+
+
+
+				// getCoordinatesFromGeoJson(function(error) {
+				// 	if(error) {
+				// 		console.log("error: ", error);
+				// 	} else {
+				// 		console.log("No error loading planet data!");
+				// 		loadHyperspaceLanes(function(errorHyperspace) {
+
+				// 		});
+				// 	}
+				// });
+
+
+			}
+		});
+	}).catch(errorConnect => {
+		console.log("error connecting to the mongo database: ", errorConnect);
 	});
-});
+};
+
+// function getDatabaseStats() {
+// 	DatabaseController.totalPlanets();
+// 	DatabaseController.totalCoordinates();
+// 	DatabaseController.totalPlanetsHasLocation();
+// 	DatabaseController.totalSectors();
+// 	DatabaseController.totalHyperspaceNodes();
+// 	DatabaseController.totalHyperspaceLanes();
+// };
 
 
-function getDatabaseStats() {
-	DatabaseController.totalPlanets();
-	DatabaseController.totalCoordinates();
-	DatabaseController.totalPlanetsHasLocation();
-	DatabaseController.totalSectors();
-	DatabaseController.totalHyperspaceNodes();
-	DatabaseController.totalHyperspaceLanes();
-}
 
-function getCoordinatesFromGeoJson(callback) {
+async function getDatabaseStatsAsync() {
+	try {
+		const TotalPlanets = await MongoController.totalPlanets();
+		const TotalCoordinates = await MongoController.totalCoordinates();
+		const TotalPlanetsWithLocation = await MongoController.totalPlanetsHasLocation();
+		const TotalSectors = await MongoController.totalSectors();
+		const TotalHyperspaceNodes = await MongoController.totalHyperspaceNodes();
+		const TotalHyperspaceLanes = await MongoController.totalHyperspaceLanes();
+
+		console.log("Total Planets: ", TotalPlanets);
+		console.log("Total Coordinates: ", TotalCoordinates);
+		console.log("Total Planets with Location: ", TotalPlanetsWithLocation);
+		console.log("Total Sectors: ", TotalSectors);
+		console.log("Total Hyperspace Nodes: ", TotalHyperspaceNodes);
+		console.log("Total Hyperspace Lanes: ", TotalHyperspaceLanes);
+
+	} catch(err) {
+		throw new Error(err);
+	}
+};
+
+// function getCoordinatesFromGeoJson(callback) {
+// 	console.log("getCoordinatesFromGeoJson has fired!");
+// 	const Planets = JSON.parse(fs.readFileSync('./data/planets.geojson', 'utf8'));
+// 	asyncLib.eachLimit(Planets.features, 5, loadPlanet, function(err){
+// 		console.log("async each done!");
+// 		if(err) {
+// 			console.log("Error loading planet data: ", err);
+// 			callback(err);
+// 		} else {
+// 			console.log("Planet data loaded! Total planets in planets.geojson: ", Planets.features.length);
+// 			callback(null);
+// 		}
+// 	});
+// };
+
+function getCoordinatesFromGeoJsonAsync() {
 	console.log("getCoordinatesFromGeoJson has fired!");
 	const Planets = JSON.parse(fs.readFileSync('./data/planets.geojson', 'utf8'));
+  return Promise.map(Planets.features, planet => { 
+    return loadPlanetAsync(planet);
+  }, 
+    {
+      concurrency: 5
+    }
+  );
+};
 
-	async.eachLimit(Planets.features, 5, loadPlanet, function(err){
-		console.log("async each done!");
-		if(err) {
-			console.log("Error loading planet data: ", err);
-			callback(err);
-		} else {
-			console.log("Planet data loaded! Total planets in planets.geojson: ", Planets.features.length);
-			callback(null);
-		}
-	});
-}
+async function loadPlanetAsync(planet) {
+	try {
+		const system = planet.properties.name;
+		const sector = [planet.properties.sector];
+		const region = planet.properties.region;
+		const coordinates = planet.properties.grid;
+		const xGalactic = planet.properties.x;
+		const yGalactic = planet.properties.y;
+		const xGalacticLong = planet.properties.point_x;
+		const yGalacticLong = planet.properties.point_y;
+		const LngLat = planet.geometry.coordinates;
+		const zoom = planet.properties.zm;
+		const link = planet.properties.link;
+		const lat = planet.geometry.coordinates[1];
+		const lng = planet.geometry.coordinates[0];
+		const hasLocation = true;
+		const FocusedPlanet = new Planet(
+			system,
+			sector,
+			region,
+			coordinates,
+			xGalactic,
+			yGalactic,
+			xGalacticLong,
+			yGalacticLong,
+			hasLocation,
+			LngLat,
+			lng,
+			lat,
+			zoom,
+			link
+		);
 
-function loadPlanet(planet, cb) {
-	const system = planet.properties.name;
-	const sector = [planet.properties.sector];
-	const region = planet.properties.region;
-	const coordinates = planet.properties.grid;
-	const xGalactic = planet.properties.x;
-	const yGalactic = planet.properties.y;
-	const xGalacticLong = planet.properties.point_x;
-	const yGalacticLong = planet.properties.point_y;
-	const LngLat = planet.geometry.coordinates;
-	const zoom = planet.properties.zm;
-	const link = planet.properties.link;
-	const lat = planet.geometry.coordinates[1];
-	const lng = planet.geometry.coordinates[0];
-	const hasLocation = true;
-	const FocusedPlanet = new Planet(
-		system,
-		sector,
-		region,
-		coordinates,
-		xGalactic,
-		yGalactic,
-		xGalacticLong,
-		yGalacticLong,
-		hasLocation,
-		LngLat,
-		lng,
-		lat,
-		zoom,
-		link
-	);
-
-	console.log("FocusedPlanet: ", FocusedPlanet);
-
-	DatabaseController.findPlanetAndUpdate({system: system}, FocusedPlanet, function(err, doc){
-		if(err) {
-			console.log("err: ", err);
-			cb(err, {});
-		} else if(doc === null) {
-			cb(null, false);
-
-			DatabaseController.createPlanet(FocusedPlanet);
+		// console.log("FocusedPlanet: ", FocusedPlanet);
+		const doc = await MongoController.findPlanetAndUpdate({system: system}, FocusedPlanet);
+		if(doc === null) {
+			const PlanetAdded = await MongoController.createPlanet(FocusedPlanet);
 			systemsNotInAppendix++;
+			return true;
 		} else {
-			cb(null, true);
+			return true;
 		}
-	});
-}
+
+	} catch(err) {
+		console.log("error loading planet: ", err);
+		throw new Error(err);
+	}
+};
+
+// function loadPlanet(planet, cb) {
+// 	const system = planet.properties.name;
+// 	const sector = [planet.properties.sector];
+// 	const region = planet.properties.region;
+// 	const coordinates = planet.properties.grid;
+// 	const xGalactic = planet.properties.x;
+// 	const yGalactic = planet.properties.y;
+// 	const xGalacticLong = planet.properties.point_x;
+// 	const yGalacticLong = planet.properties.point_y;
+// 	const LngLat = planet.geometry.coordinates;
+// 	const zoom = planet.properties.zm;
+// 	const link = planet.properties.link;
+// 	const lat = planet.geometry.coordinates[1];
+// 	const lng = planet.geometry.coordinates[0];
+// 	const hasLocation = true;
+// 	const FocusedPlanet = new Planet(
+// 		system,
+// 		sector,
+// 		region,
+// 		coordinates,
+// 		xGalactic,
+// 		yGalactic,
+// 		xGalacticLong,
+// 		yGalacticLong,
+// 		hasLocation,
+// 		LngLat,
+// 		lng,
+// 		lat,
+// 		zoom,
+// 		link
+// 	);
+
+// 	console.log("FocusedPlanet: ", FocusedPlanet);
+
+// 	DatabaseController.findPlanetAndUpdate({system: system}, FocusedPlanet, function(err, doc){
+// 		if(err) {
+// 			console.log("err: ", err);
+// 			cb(err, {});
+// 		} else if(doc === null) {
+// 			cb(null, false);
+
+// 			DatabaseController.createPlanet(FocusedPlanet);
+// 			systemsNotInAppendix++;
+// 		} else {
+// 			cb(null, true);
+// 		}
+// 	});
+// };
 
 function loadHyperspaceLanes(cb) {
-
 	console.log("loading hyperspace lanes...");
 	const HyperspaceLanes = JSON.parse(fs.readFileSync('./data/hyperspace.geojson', 'utf8'));
 	let totalHyperspaceLanes = 0;
@@ -304,16 +432,12 @@ function loadHyperspaceLanes(cb) {
 	let totalPlanetToEmptyLanes = 0;
 	let totalEmptyToEmptyLanes = 0;
 
-	async.eachSeries(HyperspaceLanes.features, function(hyperspaceLane, callbackEach) {
+	asyncLib.eachSeries(HyperspaceLanes.features, function(hyperspaceLane, callbackEach) {
+
+		console.log("async each series start");
+
 		let hyperspaceLaneProps = hyperspaceLane.properties;
-		// let hyperspaceCoordinates = hyperspaceLane.geometry.coordinates[0];
 		let hyperspaceCoordinates = _.flattenDepth(hyperspaceLane.geometry.coordinates, 1);
-		// _.forEach(hyperspaceCoordinates, function(el) {
-		//   el.reverse();
-		// });
-		// hyperspaceCoordinates = _.map(hyperspaceCoordinates, function(el) {
-		// 	return el.reverse();
-		// });
 		let startCoordinates = hyperspaceCoordinates[0];
 		let startCoordinatesLat = startCoordinates[1];
 		let startCoordinatesLng = startCoordinates[0];
@@ -330,64 +454,141 @@ function loadHyperspaceLanes(cb) {
 		};
 		let startSystem, endSystem;
 
-		async.parallel([
+
+		asyncLib.parallel([
 			function(callback) {
-				DatabaseController.findOnePlanet({LngLat: startCoordinates}, function(err, res) {
-					// (res.doc)? console.log("res found doc: ", res) : console.log("res did not find doc: ", res);
-					if(err) {
-						callback(err, null);
-					} else if(res.doc && res.status) {
-						// console.log("Found planet: ", res.doc.system);
+
+
+
+				MongoController.findOnePlanet({LngLat: startCoordinates}).then(res => {
+
+					console.log("res: ", res);
+
+
+					if(res.doc && res.status) {
+						// console.log("Found planet: ", res2.doc.system);
 						callback(null, res);
 					} else {
-						DatabaseController.findOneHyperspaceNode({lat: Start.lat, lng: Start.lng}, function(errorNode, resultNode) {
-							if(errorNode) {
-								console.log("errorNode: ", errorNode);
-								callback(errorNode, null);
-							} else {
-								// console.log("resultNode: ", resultNode);
-								callback(null, resultNode);
-							}
+						MongoController.findOneHyperspaceNodeAsync({lat: Start.lat, lng: Start.lng}).then(resultNode => {
+							console.log("resultNode: ", resultNode);
+							callback(null, resultNode);
+						}).catch(errorNode => {
+							console.log("errorNode: ", errorNode);
+							callback(errorNode, null);							
 						});
 					}
+				}).catch(err => {
+					callback(err, null);
 				});
+
+
+
+
+				// DatabaseController.findOnePlanet({LngLat: startCoordinates}, function(err, res) {
+				// 	// (res.doc)? console.log("res found doc: ", res) : console.log("res did not find doc: ", res);
+				// 	if(err) {
+				// 		callback(err, null);
+				// 	} else if(res.doc && res.status) {
+				// 		// console.log("Found planet: ", res.doc.system);
+				// 		callback(null, res);
+				// 	} else {
+				// 		DatabaseController.findOneHyperspaceNode({lat: Start.lat, lng: Start.lng}, function(errorNode, resultNode) {
+				// 			if(errorNode) {
+				// 				console.log("errorNode: ", errorNode);
+				// 				callback(errorNode, null);
+				// 			} else {
+				// 				// console.log("resultNode: ", resultNode);
+				// 				callback(null, resultNode);
+				// 			}
+				// 		});
+				// 	}
+				// });
+
+
+
 			}, function(callback) {
-				DatabaseController.findOnePlanet({LngLat: endCoordintes}, function(err2, res2) {
-					// (res2.doc)? console.log("res2 found doc: ", res2) : console.log("res2 did not find doc: ", res2);
-					if(err2) {
-						callback(err2, null);
-					} else if(res2.doc && res2.status) {
+
+
+				// DatabaseController.findOnePlanet({LngLat: endCoordintes}, function(err2, res2) {
+				// 	// (res2.doc)? console.log("res2 found doc: ", res2) : console.log("res2 did not find doc: ", res2);
+				// 	if(err2) {
+				// 		callback(err2, null);
+				// 	} else if(res2.doc && res2.status) {
+				// 		// console.log("Found planet: ", res2.doc.system);
+				// 		callback(null, res2);
+				// 	} else {
+				// 		DatabaseController.findOneHyperspaceNode({lat: End.lat, lng: End.lng}, function(errorNode, resultNode) {
+				// 			if(errorNode) {
+				// 				console.log("errorNode: ", errorNode);
+				// 				callback(errorNode, null);
+				// 			} else {
+				// 				// console.log("resultNode2: ", resultNode);
+				// 				callback(null, resultNode);
+				// 			}
+				// 		});
+				// 	}
+				// });
+
+
+				MongoController.findOnePlanet({LngLat: endCoordintes}).then(res2 => {
+
+
+					console.log("res2: ", res2);
+
+					if(res2.doc && res2.status) {
 						// console.log("Found planet: ", res2.doc.system);
 						callback(null, res2);
 					} else {
-						DatabaseController.findOneHyperspaceNode({lat: End.lat, lng: End.lng}, function(errorNode, resultNode) {
-							if(errorNode) {
-								console.log("errorNode: ", errorNode);
-								callback(errorNode, null);
-							} else {
-								// console.log("resultNode2: ", resultNode);
-								callback(null, resultNode);
-							}
+
+						MongoController.findOneHyperspaceNodeAsync({lat: End.lat, lng: End.lng}).then(resultNode => {
+							console.log("resultNode: ", resultNode);
+							callback(null, resultNode);
+						}).catch(errorNode => {
+							console.log("errorNode: ", errorNode);
+							callback(errorNode, null);							
 						});
 					}
+				}).catch(err2 => {
+					callback(err2, null);
 				});
+
+
+
+
+
 			}
 		], function(error, results) {
+
+			console.log("async parallel 1 end");
+
+
 			if(error) {
 				callbackEach(error);
 			}
 			const firstResult = results[0];
 			const secondResult = results[1];
-			let systemA = (firstResult.status)? firstResult.doc.system : null;
-			let systemB = (secondResult.status)? secondResult.doc.system : null;
-			const systemALat = (firstResult.doc)? firstResult.doc.lat : Start.lat;
-			const systemALng = (firstResult.doc)? firstResult.doc.lng : Start.lng;
-			const systemBLat = (secondResult.doc)? secondResult.doc.lat : End.lat;
-			const systemBLng = (secondResult.doc)? secondResult.doc.lng : End.lng;
-			let systemAGalacticX = (firstResult.doc)? firstResult.doc.xGalacticLong : null;
-			let systemAGalacticY = (firstResult.doc)? firstResult.doc.yGalacticLong : null;
-			let systemBGalacticX = (secondResult.doc)? secondResult.doc.xGalacticLong : null;
-			let systemBGalacticY = (secondResult.doc)? secondResult.doc.yGalacticLong : null;
+
+			console.log("results: ", results);
+			// console.log("firstResult: ", firstResult);
+			// console.log("secondResult: ", secondResult);
+
+
+
+			const firstResultFound = (firstResult && _.has(firstResult, 'status'))? true : false;
+			const secondResultFound = (secondResult && _.has(secondResult, 'status'))? true : false;
+
+
+
+			let systemA = (firstResultFound)? firstResult.doc.system : null;
+			let systemB = (secondResultFound)? secondResult.doc.system : null;
+			const systemALat = (firstResultFound)? firstResult.doc.lat : Start.lat;
+			const systemALng = (firstResultFound)? firstResult.doc.lng : Start.lng;
+			const systemBLat = (secondResultFound)? secondResult.doc.lat : End.lat;
+			const systemBLng = (secondResultFound)? secondResult.doc.lng : End.lng;
+			let systemAGalacticX = (firstResultFound)? firstResult.doc.xGalacticLong : null;
+			let systemAGalacticY = (firstResultFound)? firstResult.doc.yGalacticLong : null;
+			let systemBGalacticX = (secondResultFound)? secondResult.doc.xGalacticLong : null;
+			let systemBGalacticY = (secondResultFound)? secondResult.doc.yGalacticLong : null;
 
 			if(hyperspaceLaneProps.hyperspace === null) {
 				hyperspaceLaneProps.hyperspace = Alphabets.findLaneName();
@@ -412,18 +613,40 @@ function loadHyperspaceLanes(cb) {
 			// console.log("systemBLat: ", systemBLat);
 			// console.log("systemBLng: ", systemBLng);
 			// console.log("\n");
-			if((firstResult.status) && (secondResult.status)) {
+			if(firstResultFound && secondResultFound) {
 				totalPlanetToPlanetLanes += 1;
-			} else if(firstResult.status || secondResult.status) {
+			} else if(firstResultFound || secondResultFound) {
 				totalPlanetToEmptyLanes += 1;
 			} else {
 				totalEmptyToEmptyLanes += 1;
 			}
 
+			console.log("async parallel 2 start");
 
-			async.parallel([
+			asyncLib.parallel([
 		    function(callbackNode) {
-	        	DatabaseController.createHyperspaceNode({
+
+
+     //    	DatabaseController.createHyperspaceNode({
+					// 	system: systemA,
+					// 	lat: systemALat,
+					// 	lng: systemALng,
+					// 	xGalacticLong: systemAGalacticX,
+					// 	yGalacticLong: systemAGalacticY,
+					// 	hyperspaceLanes: [hyperspaceLaneProps.hyperspace],
+					// 	nodeId: genRandFiveDigit(),
+					// 	loc: [systemALng, systemALat]
+					// }, function(errorNode, resultNode) {
+					// 	if(errorNode) {
+					// 		console.log("Node creation error: ", errorNode);
+					// 		callbackNode(errorNode, resultNode);
+					// 	} else {
+					// 		callbackNode(null, resultNode);
+					// 	}	
+					// });
+
+
+					MongoController.createHyperspaceNodeAsync({
 						system: systemA,
 						lat: systemALat,
 						lng: systemALng,
@@ -432,17 +655,37 @@ function loadHyperspaceLanes(cb) {
 						hyperspaceLanes: [hyperspaceLaneProps.hyperspace],
 						nodeId: genRandFiveDigit(),
 						loc: [systemALng, systemALat]
-				}, function(errorNode, resultNode) {
-					if(errorNode) {
-						console.log("Node creation error: ", errorNode);
-						callbackNode(errorNode, resultNode);
-					} else {
+					}).then(resultNode => {
 						callbackNode(null, resultNode);
-					}	
-				});
+					}).catch(errorNode => {
+						console.log("Node creation error: ", errorNode);
+						callbackNode(errorNode);
+					});
+
+
 		    },
 		    function(callbackNode) {
-		    	DatabaseController.createHyperspaceNode({
+
+		   //  	DatabaseController.createHyperspaceNode({
+					// 	system: systemB,
+					// 	lat: systemBLat,
+					// 	lng: systemBLng,
+					// 	xGalacticLong: systemBGalacticX,
+					// 	yGalacticLong: systemBGalacticY,
+					// 	hyperspaceLanes: [hyperspaceLaneProps.hyperspace],
+					// 	nodeId: genRandFiveDigit(),
+					// 	loc: [systemBLng, systemBLat]
+					// }, function(errorNode, resultNode) {
+					// 	if(errorNode) {
+					// 		console.log("Node creation error: ", errorNode);
+					// 		callbackNode(errorNode);
+					// 	} else {
+					// 		callbackNode(null, resultNode);
+					// 	}
+					// });
+
+
+					MongoController.createHyperspaceNodeAsync({
 						system: systemB,
 						lat: systemBLat,
 						lng: systemBLng,
@@ -451,381 +694,467 @@ function loadHyperspaceLanes(cb) {
 						hyperspaceLanes: [hyperspaceLaneProps.hyperspace],
 						nodeId: genRandFiveDigit(),
 						loc: [systemBLng, systemBLat]
-					}, function(errorNode, resultNode) {
-						if(errorNode) {
-							console.log("Node creation error: ", errorNode);
-							callbackNode(errorNode);
-						} else {
-							callbackNode(null, resultNode);
-						}
+					}).then(resultNode => {
+						callbackNode(null, resultNode);
+					}).catch(errorNode => {
+						console.log("Node creation error: ", errorNode);
+						callbackNode(errorNode);
 					});
+
 		    }],
 			function(errorCreate, resultsCreate) {
+
+				console.log("async each parallel 2 end");
+
+				// console.log("resultsCreate: ", resultsCreate);
+				// console.log("errorCreate: ", errorCreate);
+
+				
+
 		    if(errorCreate) {
 		    	callbackEach(errorCreate);
 		    } else {
-		    	// console.log("resultsCreate: ", resultsCreate);
 		    	let startSystem = resultsCreate[0];
 		    	let endSystem = resultsCreate[1];
 
-		    	if(startSystem) {
-		    		console.log("startSystem: ", startSystem);
-		    		Alphabets.backOneNodeName();
-		    	}
-		    	if(endSystem) {
-		    		console.log("endSystem: ", endSystem);
-		    		Alphabets.backOneNodeName();
-		    	}
+		    	const startSystemFound = !_.isEmpty(startSystem);
+					const endSystemFound = !_.isEmpty(endSystem);
 
-		    	startSystem = (startSystem)? startSystem : systemA;
-		    	endSystem = (endSystem)? endSystem : systemB;
+		    	if(startSystemFound) {
+		    		// console.log("startSystem: ", startSystem);
+		    		Alphabets.backOneNodeName();
+		    	}
+		    	if(endSystemFound) {
+		    		// console.log("endSystem: ", endSystem);
+		    		Alphabets.backOneNodeName();
+		    	}
+		    	const startSystemName = (startSystemFound)? startSystem.system : systemA;
+		    	const endSystemName = (endSystemFound)? endSystem.system : systemB;
 		    	const hyperspaceHash = uuidv4();
-		    	// console.log("hyperspaceHash: ", hyperspaceHash);
-		    	// console.log("hyperspaceHash type: ", typeof hyperspaceHash);
 		    	const SpaceLane = new HyperSpaceLane(
-					hyperspaceLaneProps.hyperspace,  // name
-					hyperspaceHash, // hyperspaceHash
-					startSystem, // start
-					endSystem, // end
-					startCoordinates, // startCoordinates
-					endCoordintes, // endCoordintes
-					hyperspaceLaneProps.length, // length
-					hyperspaceLaneProps.link, // link
-					null, // Start Node
-					null, // End Node
-					hyperspaceCoordinates
-				);
-				// console.log("SpaceLane: ", SpaceLane);
-				totalHyperspaceLanes += 1;
+						hyperspaceLaneProps.hyperspace,  // name
+						hyperspaceHash, // hyperspaceHash
+						startSystemName, // start
+						endSystemName, // end
+						startCoordinates, // startCoordinates
+						endCoordintes, // endCoordintes
+						hyperspaceLaneProps.length, // length
+						hyperspaceLaneProps.link, // link
+						null, // Start Node
+						null, // End Node
+						hyperspaceCoordinates
+					);
+					totalHyperspaceLanes += 1;
+		   //  	DatabaseController.createHyperspaceLane(SpaceLane, function(errorCreate, resultCreate) {
+					// 	if(errorCreate) {
+					// 		callbackEach(errorCreate);
+					// 	} else {
+					// 		callbackEach(null);
+					// 	}
+					// });
 
-		    	DatabaseController.createHyperspaceLane(SpaceLane, function(errorCreate, resultCreate) {
-						if(errorCreate) {
-							callbackEach(errorCreate);
-						} else {
-							callbackEach(null);
-						}
+					// console.log("SpaceLane: ", SpaceLane);
+
+					MongoController.createHyperspaceLane(SpaceLane).then(resultCreate => {
+						callbackEach(null);
+					}).catch(errorCreate => {
+						callbackEach(errorCreate);
 					});
-		    	}
+	    	}
 			});
 		});
 	}, function(errorEach) {
+
+			console.log("async each series done");
+
+
 		if(errorEach) {
 			console.log("Error setting up hyperspace lanes: ", errorEach);
 		}
-		// console.log("Total Hyperspace Lanes: ", totalHyperspaceLanes);
-		// console.log("Total Planet To Planet Lanes: ", totalPlanetToPlanetLanes);
-		// console.log("Planet to Empty Space hyperspace lanes: ", totalPlanetToEmptyLanes);
-		// console.log("Empty Space to Empty Space hyperspace lanes: ", totalEmptyToEmptyLanes);
-		// console.log("Planets not in the Appendix: ", systemsNotInAppendix);
 
-		// getDatabaseStats();
-		// cb(errorEach);
-		
 
-		hyperlaneCorrection(function(laneCorrectionError, laneCorrectionResult) {
-			console.log("laneCorrectionError: ", laneCorrectionError);
-			console.log("laneCorrectionResult: ", laneCorrectionResult);
-			console.log("Total Hyperspace Lanes: ", totalHyperspaceLanes);
-			console.log("Total Planet To Planet Lanes: ", totalPlanetToPlanetLanes);
-			console.log("Planet to Empty Space hyperspace lanes: ", totalPlanetToEmptyLanes);
-			console.log("Empty Space to Empty Space hyperspace lanes: ", totalEmptyToEmptyLanes);
-			console.log("Planets not in the Appendix: ", systemsNotInAppendix);
-			getDatabaseStats();
-			console.log("DatabaseController: ", DatabaseController);
-			cb(errorEach);
-		});
-
-	});
-}
-
-
-function hyperlaneCorrection(cb) {
-
-	DatabaseController.getAllHyperspaceLanes(function(error, result) {
-
-		if(error) {
-			console.log("error getting all hyperspace lanes: ", error);
-			cb(error, null);
-		} else {
-			console.log("total hyperspace lanes: ", result.length);
-
-			// for(let lane of result) {
-
-
-
-
-
-
-			// }
-
-
-			// async.eachSeries(mapSeries, function(hyperspaceLane, callbackEach) {})
-
-
-			// async.mapSeries(result, function(hyperspaceLane, callbackEach){
-			//     return callbackEach(null, hyperspaceLane);
-			// }, function(err, results) {
-			//     console.log('results : ' + results);  // results : name1,name2,name3
-			//     cb(null, results);
-
-			// });
-
-
-			// async.filterLimit(result, 2, function(hyperspaceLane, callbackEach){
-			// 		if(hyperspaceLane.start)
-			//   	return callbackEach(null, hyperspaceLane);
-			// }, function(err, results) {
-			//   	console.log('results : ' + results);  // results : name1,name2,name3
-			// });
-
-			async.filterLimit(result, 2, validateLaneNodes, function(err, results) {
-			    // results now equals an array of the existing files
-			    console.log("err: ", err);
-			    // console.log("hyperspace lanes with incorrect node names results: ", results);
-			    // cb(err, results);
-
-			    updateHyperspaceLanesWithCorrectNode(results, function(errorUpdate) {
-			    	cb(errorUpdate, results);
-			    });
-
-			});
-
-		}
-
-	});
-
-}
-
-
-function validateLaneNodes(hyperspaceLane, cb) {
-
-	async.parallel([
-	    function(callback) {
-	        DatabaseController.findOneHyperspaceNode({system:hyperspaceLane.start},function(error,resultNode){
-				if(error) {
-					callback(error, false);
-				} else {
-					callback(null, resultNode.status);
-				}
-			});
-	    },
-	    function(callback) {
-	        DatabaseController.findOneHyperspaceNode({system:hyperspaceLane.end},function(error,resultNode){
-
-				if(error) {
-					callback(error, false);
-				} else {
-					callback(null, resultNode.status);
-				}
-			});
-	    }
-	],
-	// optional callback
-	function(err, results) {
-	    // the results array will equal ['one','two'] even though
-	    // the second function had a shorter timeout.
-
-	    const startNodeFound = results[0];
-	    const endNodeFound = results[1];
-
-	    if(err) {
-	    	cb(err, false);
-	    } else if(!startNodeFound || !endNodeFound) {
-		    console.log("bad hyperspace lane node: ", hyperspaceLane);
-		    console.log("results: ", results);
-	    	cb(null, true);
-	    } else {
-	    	cb(null, false);
-	    }
-
-	});
-}
-
-
-function updateHyperspaceLanesWithCorrectNode(lanesToCorrect, cb) {
-
-	async.eachLimit(lanesToCorrect, 2, function(lane, callback) {
-		findBadNodeOnLane(lane, function(err, result) {
-			callback(err, result);
-		});
-	}, function(err) {
-	    // if any of the file processing produced an error, err would equal that error
-	    if( err ) {
-	      // One of the iterations produced an error.
-	      // All processing will now stop.
-	      console.log('Error updateing hyperspace lanes...');
-	    } else {
-	      console.log('Hyperspace lanes updating successfully..');
-	    }
-	    cb(err);
-	});
-
-}
-
-
-
-function findBadNodeOnLane(hyperspaceLane, cb) {
-
-	async.parallel([
-	    function(callback) {
-	        DatabaseController.findOneHyperspaceNode({system:hyperspaceLane.start},function(error,resultNode){
-				if(error) {
-					callback(error, false);
-				} else {
-					callback(null, resultNode.status);
-				}
-			});
-	    },
-	    function(callback) {
-	        DatabaseController.findOneHyperspaceNode({system:hyperspaceLane.end},function(error,resultNode){
-
-				if(error) {
-					callback(error, false);
-				} else {
-					callback(null, resultNode.status);
-				}
-			});
-	    }
-	],
-	// optional callback
-	function(err, results) {
-	    // the results array will equal ['one','two'] even though
-	    // the second function had a shorter timeout.
-
-	    const startNodeFound = results[0];
-	    const endNodeFound = results[1];
-
-	    if(err) {
-	    	cb(err, hyperspaceLane);
-	    } else if(!startNodeFound) {
-		    // console.log("bad hyperspace lane start node: ", hyperspaceLane);
-		    // console.log("results: ", results);
-
-		    const laneStartLng = hyperspaceLane.startCoordsLngLat[0];
-		    const laneStartLat = hyperspaceLane.startCoordsLngLat[1];
-
-		    const NodePromise = DatabaseController.findOneHyperspaceNodeAsync({
-		    	lat: laneStartLat,
-		    	lng: laneStartLng
-		    });
-
-		    NodePromise.then(function(hyperspaceNode) {
-		    	console.log("hyperspaceNode Start: ", hyperspaceNode);		    	
-		    	return DatabaseController.findHyperspaceLaneAndUpdateAsync({
-		    		hyperspaceHash: hyperspaceLane.hyperspaceHash
-		    	},{
-		    		start: hyperspaceNode.doc.system
-		    	});
-		    }).then(function(hyperspaceLaneUpdate) {
-		    	console.log("hyperspaceLane Start: ", hyperspaceLaneUpdate);
-		    	cb(null, hyperspaceLaneUpdate);
-		    })
-		    .error(function(hyperspaceNodeError) {
-		    	console.log("hyperspaceNodeError Start: ", hyperspaceNodeError);
-		    	cb(hyperspaceNodeError, null);
-		    });
-
-		    // DatabaseController.findOneHyperspaceNode({lat: laneStartLat, lng: laneStartLng}, function(errorActualNode, resultActualNode) {
-		    // 	console.log("resultActualNode: ", resultActualNode);
-		    // 	cb(null, hyperspaceLane);
-		    // });
-		    // cb(null, hyperspaceLane);
-	    } else if(!endNodeFound) {
-	    	// console.log("bad hyperspace lane end node: ", hyperspaceLane);
-		    // console.log("results: ", results);
-
-		    const laneEndLng = hyperspaceLane.endCoordsLngLat[0];
-		    const laneEndLat = hyperspaceLane.endCoordsLngLat[1];
-
-
-		    const NodePromise = DatabaseController.findOneHyperspaceNodeAsync({
-		    	lat: laneEndLat,
-		    	lng: laneEndLng
-		    });
-
-		    NodePromise.then(function(hyperspaceNode) {
-		    	console.log("hyperspaceNode End: ", hyperspaceNode);
-		    	return DatabaseController.findHyperspaceLaneAndUpdateAsync({
-		    		hyperspaceHash: hyperspaceLane.hyperspaceHash
-		    	},{
-		    		end: hyperspaceNode.doc.system
-		    	});
-		    }).then(function(hyperspaceLaneUpdate) {
-		    	console.log("hyperspaceLane End: ", hyperspaceLaneUpdate);
-		    	cb(null, hyperspaceLaneUpdate);
-		    }).error(function(hyperspaceNodeError) {
-		    	console.log("hyperspaceNodeError End: ", hyperspaceNodeError);
-		    	cb(hyperspaceNodeError, null);
-		    });
-
-
-		    // DatabaseController.findOneHyperspaceNode({lat: laneEndLat, lng: laneEndLng}, function(errorActualNode, resultActualNode) {
-		    // 	console.log("resultActualNode: ", resultActualNode);
-		    // 	cb(null, hyperspaceLane);
-		    // });
-		    // cb(null, hyperspaceLane);
-	    } else {
-	    	cb(null, hyperspaceLane);
-	    }
-
-	});
-}
-
-
-
-
-
-function updateHyperspaceLane(lane, UpdateItem, cb) {
-
-	DatabaseController.findHyperspaceLaneAndUpdate({hyperspaceHash: lane.hyperspaceHash}, UpdateItem, function(error, result) {
-
-		cb(error, result);
-
-	});
-}
-
-function getDatabaseSize(db) {
-	const collectionsArray = db.getCollectionNames();
-	console.log("collectionsArray: ", collectionsArray);
-	// db.foo.stats(1024 * 1024);
-}
-
-function getCoordinatesFromCSV() {
-	const stream = fs.createReadStream("./data/planets.csv");
-	const csvStream = csv()
-    .on("data", function(data){
-		const zoom = parseInt(data[2]);
-		console.log("zoom: ", zoom);
-		const systemName = data[11];
-		const y = data[14];
-		const x = data[15];
-		const UpdateItem = {
-			xGalactic: x,
-			yGalactic: y,
-			hasLocation: true,
-			zoom: zoom
-		};
-		// PlanetModel.findOneAndUpdate({system: systemName}, UpdateItem, function(err, doc){
-		// 	if(err) {
-		// 		console.log("err: ", err);
-		// 	} else {
-		// 		console.log("System has added coordinates: ", doc);
-		// 	}
+		// hyperlaneCorrection(function(laneCorrectionError, laneCorrectionResult) {
+		// 	console.log("laneCorrectionError: ", laneCorrectionError);
+		// 	console.log("laneCorrectionResult: ", laneCorrectionResult);
+		// 	console.log("Total Hyperspace Lanes: ", totalHyperspaceLanes);
+		// 	console.log("Total Planet To Planet Lanes: ", totalPlanetToPlanetLanes);
+		// 	console.log("Planet to Empty Space hyperspace lanes: ", totalPlanetToEmptyLanes);
+		// 	console.log("Empty Space to Empty Space hyperspace lanes: ", totalEmptyToEmptyLanes);
+		// 	console.log("Planets not in the Appendix: ", systemsNotInAppendix);
+		// 	// getDatabaseStats();
+		// 	getDatabaseStatsAsync().then(() => {
+		// 		console.log("database stats displayed");
+		// 	}).catch(errorStats => {
+		// 		console.log("error displaying database stats: ", errorStats);
+		// 	});
+		// 	console.log("DatabaseController: ", DatabaseController);
+		// 	cb(errorEach);
 		// });
-		DatabaseController.findPlanetAndUpdate({system: systemName}, UpdateItem);
-    })
-    .on("end", function(){
-         console.log("done reading planets.csv");
-    });
-	stream.pipe(csvStream);
+		console.log("Total hyperspace lanes: ", HyperspaceLanes.features.length);
+
+		cb(errorEach);
+
+			// getDatabaseStatsAsync().then(() => {
+			// 	console.log("database stats displayed");
+
+			// 	console.log("Total hyperspace lanes: ", HyperspaceLanes.features.length);
+			// 	cb(errorEach);
+			// }).catch(errorStats => {
+			// 	console.log("error displaying database stats: ", errorStats);
+			// 	cb(errorStats);
+			// });
+
+
+		// hyperlaneCorrectionAsync().then(laneCorrectionResult => {
+		// 	console.log("laneCorrectionResult: ", laneCorrectionResult);
+		// 	console.log("Total Hyperspace Lanes: ", totalHyperspaceLanes);
+		// 	console.log("Total Planet To Planet Lanes: ", totalPlanetToPlanetLanes);
+		// 	console.log("Planet to Empty Space hyperspace lanes: ", totalPlanetToEmptyLanes);
+		// 	console.log("Empty Space to Empty Space hyperspace lanes: ", totalEmptyToEmptyLanes);
+		// 	console.log("Planets not in the Appendix: ", systemsNotInAppendix);
+		// 	// getDatabaseStats();
+		// 	getDatabaseStatsAsync().then(() => {
+		// 		console.log("database stats displayed");
+		// 		cb(errorEach);
+		// 	}).catch(errorStats => {
+		// 		console.log("error displaying database stats: ", errorStats);
+		// 		cb(errorStats);
+		// 	});
+		// }).catch(laneCorrectionError => {
+		// 	console.log("laneCorrectionError: ", laneCorrectionError);
+		// 	cb(laneCorrectionError);
+		// });
+
+	});
+}
+
+// function hyperlaneCorrection(cb) {
+// 	DatabaseController.getAllHyperspaceLanes(function(error, result) {
+// 		if(error) {
+// 			console.log("error getting all hyperspace lanes: ", error);
+// 			cb(error, null);
+// 		} else {
+// 			console.log("total hyperspace lanes: ", result.length);
+// 			asyncLib.filterLimit(result, 2, validateLaneNodes, function(err, results) {
+// 		    console.log("err: ", err);
+// 		    updateHyperspaceLanesWithCorrectNode(results, function(errorUpdate) {
+// 		    	cb(errorUpdate, results);
+// 		    });
+// 			});
+// 		}
+// 	});
+// }
+
+
+async function hyperlaneCorrectionAsync() {
+		try {
+		const result	= await MongoController.getAllHyperspaceLanes();
+
+		console.log("total hyperspace lanes: ", result.length);
+
+		const badLanes = await Promise.filter(result, function(lane) {
+			return validateLaneNodesAsync(lane) === false;
+		});
+
+		const hyperspaceUpdate = await updateHyperspaceLanesWithCorrectNodeAsync(badLanes);
+
+		return hyperspaceUpdate;
+
+
+		// asyncLib.filterLimit(result, 2, validateLaneNodes, function(err, results) {
+	 //    console.log("err: ", err);
+	 //    updateHyperspaceLanesWithCorrectNode(results, function(errorUpdate) {
+	 //    	cb(errorUpdate, results);
+	 //    });
+		// });
+
+	} catch(err) {
+		console.log("error adding coordinates to database: ", err);
+	}
+
+
+
+	// DatabaseController.getAllHyperspaceLanes(function(error, result) {
+	// 	if(error) {
+	// 		console.log("error getting all hyperspace lanes: ", error);
+	// 		cb(error, null);
+	// 	} else {
+	// 		console.log("total hyperspace lanes: ", result.length);
+	// 		asyncLib.filterLimit(result, 2, validateLaneNodes, function(err, results) {
+	// 	    console.log("err: ", err);
+	// 	    updateHyperspaceLanesWithCorrectNode(results, function(errorUpdate) {
+	// 	    	cb(errorUpdate, results);
+	// 	    });
+	// 		});
+	// 	}
+	// });
 }
 
 
+// function validateLaneNodes(hyperspaceLane, cb) {
+// 	asyncLib.parallel([
+//     function(callback) {
+//       DatabaseController.findOneHyperspaceNode({system:hyperspaceLane.start},function(error,resultNode){
+// 				if(error) {
+// 					callback(error, false);
+// 				} else {
+// 					callback(null, resultNode.status);
+// 				}
+// 			});
+//     },
+//     function(callback) {
+//       DatabaseController.findOneHyperspaceNode({system:hyperspaceLane.end},function(error,resultNode){
+// 				if(error) {
+// 					callback(error, false);
+// 				} else {
+// 					callback(null, resultNode.status);
+// 				}
+// 			});
+//     }
+// 	],
+// 	function(err, results) {
+//     const startNodeFound = results[0];
+//     const endNodeFound = results[1];
+//     if(err) {
+//     	cb(err, false);
+//     } else if(!startNodeFound || !endNodeFound) {
+// 	    console.log("bad hyperspace lane node: ", hyperspaceLane);
+// 	    console.log("results: ", results);
+//     	cb(null, true);
+//     } else {
+//     	cb(null, false);
+//     }
+// 	});
+// }
+
+
+
+
+async function validateLaneNodesAsync(hyperspaceLane, cb) {
+	try {
+		const startNodeFound = await MongoController.findOneHyperspaceNodeAsync({system:hyperspaceLane.start});
+		const endNodeFound = await MongoController.findOneHyperspaceNodeAsync({system:hyperspaceLane.end});
+ 		if(!startNodeFound || !endNodeFound) {
+	    console.log("bad hyperspace lane node: ", hyperspaceLane);
+	    console.log("startNodeFound: ", startNodeFound);
+	    console.log("endNodeFound: ", endNodeFound);
+	    return false;
+    } else {
+    	return true;
+    }
+	} catch(err) {
+		console.log("error validating hyperspace nodes: ", err);
+		return false;
+	}
+}
+
+
+// function updateHyperspaceLanesWithCorrectNode(lanesToCorrect, cb) {
+// 	asyncLib.eachLimit(lanesToCorrect, 2, function(lane, callback) {
+// 		findBadNodeOnLane(lane, function(err, result) {
+// 			callback(err, result);
+// 		});
+// 	}, function(err) {
+// 	    // if any of the file processing produced an error, err would equal that error
+//     if( err ) {
+//       // One of the iterations produced an error.
+//       // All processing will now stop.
+//       console.log('Error updateing hyperspace lanes...');
+//     } else {
+//       console.log('Hyperspace lanes updating successfully..');
+//     }
+//     cb(err);
+// 	});
+// }
+
+
+function updateHyperspaceLanesWithCorrectNodeAsync(lanesToCorrect) {
+  return Promise.map(lanesToCorrect, lane => { 
+    return findBadNodeOnLaneAsync(lane);
+  }, 
+    {
+      concurrency: 2
+    }
+  );
+}
+
+
+// function findBadNodeOnLane(hyperspaceLane, cb) {
+// 	asyncLib.parallel([
+// 	    function(callback) {
+//         DatabaseController.findOneHyperspaceNode({system:hyperspaceLane.start},function(error,resultNode){
+// 					if(error) {
+// 						callback(error, false);
+// 					} else {
+// 						callback(null, resultNode.status);
+// 					}
+// 				});
+// 	    },
+// 	    function(callback) {
+//         DatabaseController.findOneHyperspaceNode({system:hyperspaceLane.end},function(error,resultNode){
+
+// 					if(error) {
+// 						callback(error, false);
+// 					} else {
+// 						callback(null, resultNode.status);
+// 					}
+// 				});
+// 	    }
+// 	],
+// 	function(err, results) {
+// 	    const startNodeFound = results[0];
+// 	    const endNodeFound = results[1];
+
+// 	    if(err) {
+// 	    	cb(err, hyperspaceLane);
+// 	    } else if(!startNodeFound) {
+// 		    const laneStartLng = hyperspaceLane.startCoordsLngLat[0];
+// 		    const laneStartLat = hyperspaceLane.startCoordsLngLat[1];
+
+// 		    const NodePromise = DatabaseController.findOneHyperspaceNodeAsync({
+// 		    	lat: laneStartLat,
+// 		    	lng: laneStartLng
+// 		    });
+
+// 		    NodePromise.then(function(hyperspaceNode) {
+// 		    	console.log("hyperspaceNode Start: ", hyperspaceNode);		    	
+// 		    	return DatabaseController.findHyperspaceLaneAndUpdateAsync({
+// 		    		hyperspaceHash: hyperspaceLane.hyperspaceHash
+// 		    	},{
+// 		    		start: hyperspaceNode.doc.system
+// 		    	});
+// 		    }).then(function(hyperspaceLaneUpdate) {
+// 		    	console.log("hyperspaceLane Start: ", hyperspaceLaneUpdate);
+// 		    	cb(null, hyperspaceLaneUpdate);
+// 		    })
+// 		    .error(function(hyperspaceNodeError) {
+// 		    	console.log("hyperspaceNodeError Start: ", hyperspaceNodeError);
+// 		    	cb(hyperspaceNodeError, null);
+// 		    });
+// 	    } else if(!endNodeFound) {
+
+// 		    const laneEndLng = hyperspaceLane.endCoordsLngLat[0];
+// 		    const laneEndLat = hyperspaceLane.endCoordsLngLat[1];
+
+// 		    const NodePromise = DatabaseController.findOneHyperspaceNodeAsync({
+// 		    	lat: laneEndLat,
+// 		    	lng: laneEndLng
+// 		    });
+
+// 		    NodePromise.then(function(hyperspaceNode) {
+// 		    	console.log("hyperspaceNode End: ", hyperspaceNode);
+// 		    	return DatabaseController.findHyperspaceLaneAndUpdateAsync({
+// 		    		hyperspaceHash: hyperspaceLane.hyperspaceHash
+// 		    	},{
+// 		    		end: hyperspaceNode.doc.system
+// 		    	});
+// 		    }).then(function(hyperspaceLaneUpdate) {
+// 		    	console.log("hyperspaceLane End: ", hyperspaceLaneUpdate);
+// 		    	cb(null, hyperspaceLaneUpdate);
+// 		    }).error(function(hyperspaceNodeError) {
+// 		    	console.log("hyperspaceNodeError End: ", hyperspaceNodeError);
+// 		    	cb(hyperspaceNodeError, null);
+// 		    });
+// 	    } else {
+// 	    	cb(null, hyperspaceLane);
+// 	    }
+
+// 	});
+// }
+
+
+async function findBadNodeOnLaneAsync(hyperspaceLane, cb) {
+	try {
+		const StartNode = await MongoController.findOneHyperspaceNodeAsync({system:hyperspaceLane.start});
+		const EndNode = await MongoController.findOneHyperspaceNodeAsync({system:hyperspaceLane.end});
+
+		console.log("StartNode: ", StartNode);
+		console.log("EndNode: ", EndNode);
+		
+		if(!StartNode) {
+
+	    const laneStartLng = hyperspaceLane.startCoordsLngLat[0];
+	    const laneStartLat = hyperspaceLane.startCoordsLngLat[1];
+
+	    const hyperspaceNode = await MongoController.findOneHyperspaceNodeAsync({
+	    	lat: laneStartLat,
+	    	lng: laneStartLng
+	    });
+
+    	const hyperspaceLaneUpdate = await MongoController.findHyperspaceLaneAndUpdateAsync({
+    		hyperspaceHash: hyperspaceLane.hyperspaceHash
+    	},{
+    		start: hyperspaceNode.doc.system
+    	});
+
+    }
+
+    if(!EndNode) {
+
+	    const laneEndLng = hyperspaceLane.endCoordsLngLat[0];
+	    const laneEndLat = hyperspaceLane.endCoordsLngLat[1];
+
+	    const hyperspaceNode = await MongoController.findOneHyperspaceNodeAsync({
+	    	lat: laneEndLat,
+	    	lng: laneEndLng
+	    });
+
+    	const hyperspaceLaneUpdate = await MongoController.findHyperspaceLaneAndUpdateAsync({
+    		hyperspaceHash: hyperspaceLane.hyperspaceHash
+    	},{
+    		end: hyperspaceNode.doc.system
+    	});
+
+    }
+
+    if(StartNode && EndNode) {
+    	return hyperspaceLane;
+    } else {
+    	return 
+    }
+
+	} catch(err) {
+		console.log("error finding bad node in database: ", err);
+		return hyperspaceLane;
+	}
+
+}
+
+
+
+
+// function getCoordinatesFromCSV() {
+// 	const stream = fs.createReadStream("./data/planets.csv");
+// 	const csvStream = csv()
+//     .on("data", function(data){
+// 			const zoom = parseInt(data[2]);
+// 			console.log("zoom: ", zoom);
+// 			const systemName = data[11];
+// 			const y = data[14];
+// 			const x = data[15];
+// 			const UpdateItem = {
+// 				xGalactic: x,
+// 				yGalactic: y,
+// 				hasLocation: true,
+// 				zoom: zoom
+// 			};
+// 			// DatabaseController.findPlanetAndUpdate({system: systemName}, UpdateItem);
+
+// 			MongoController.findPlanetAndUpdate({system: systemName}, UpdateItem).then(planetUpdate => {
+// 				// console.log("planetUpdate: ", planetUpdate);
+// 			}).catch(errorPlanetUpdate => {
+// 				console.log("errorPlanetUpdate: ", errorPlanetUpdate);
+// 			});
+//     })
+//     .on("end", function(){
+// 			console.log("done reading planets.csv");
+//     });
+// 	stream.pipe(csvStream);
+// }
 
 function getGalacticYFromLatitude(latitude) {
   return  (-3.07e-19*(latitude**12)) + (-1.823e-18*(latitude**11)) + (4.871543e-15*(latitude**10)) + (4.1565807e-14*(latitude**9)) + (-2.900986202e-11 * (latitude**8)) + (-1.40444283864e-10*(latitude**7)) + (7.9614373223054e-8*(latitude**6)) + (7.32976568692443e-7*(latitude**5)) + (-0.00009825374539548058*(latitude**4)) + (0.005511093818675318*(latitude**3)) + (0.04346753629461727 * (latitude**2)) + (111.30155374684914 * latitude);
 }
-
 
 function getGalacticXFromLongitude(longitude) {
   return (111.3194866138503 * longitude);
@@ -834,3 +1163,9 @@ function getGalacticXFromLongitude(longitude) {
 function genRandFiveDigit() {
   return Math.floor(Math.random()*89999+10000);
 }
+
+
+
+
+loadDatabase();
+
