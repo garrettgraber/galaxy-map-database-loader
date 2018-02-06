@@ -192,6 +192,143 @@ class HyperSpaceNode {
 
 module.exports.HyperSpaceNode = HyperSpaceNode;
 
+
+
+class Point {
+	constructor(coordinates) {
+		this.lng = coordinates[0];
+		this.lat = coordinates[1];
+		this.coordinates = coordinates;
+	}
+
+	locationObject() {
+		return {
+			lat: this.lat,
+			lng: this.lng
+		};
+	}
+};
+
+module.exports.Point = Point;
+
+
+class NodeDataBuilder {
+	constructor(doc, planetExists, nodeExists) {
+		this.doc = doc;
+		this.planetExists = planetExists;
+		this.nodeExists = nodeExists;
+	}
+
+	docIsNull() {
+		return (this.doc === null)? true : false;
+	}
+
+	createNodeData(CurrentPoint, hyperspaceLaneName, AlphabetCurrent) {
+		// console.log("Doc is null: ", this.docIsNull());
+
+		if(this.planetExists || this.nodeExists) {
+			this.system = this.doc.system;
+			this.lat = this.doc.lat;
+			this.lng = this.doc.lng;
+			this.xGalacticLong =  this.doc.xGalacticLong;
+			this.yGalacticLong =  this.doc.yGalacticLong;
+			this.loc = this.locationLngLat();
+			this.hyperspaceLanes = [hyperspaceLaneName];
+		} else if(this.planetExists && !this.nodeExists) {
+			this.nodeId = genRandFiveDigit();
+			this.hyperspaceLanes = [hyperspaceLaneName];
+		} else if(!this.planetExists && this.nodeExists) {
+			this.nodeId = this.nodeId;
+			this.hyperspaceLanes = this.doc.hyperspaceLanes.concat([hyperspaceLaneName]);
+		} else if(!this.planetExists && !this.nodeExists) {
+			this.nodeId = genRandFiveDigit();
+			this.system = AlphabetCurrent.findNodeName();
+			this.lat = CurrentPoint.lat;
+			this.lng = CurrentPoint.lng;
+			this.xGalacticLong = getGalacticXFromLongitude(this.lng);
+			this.yGalacticLong = getGalacticYFromLatitude(this.lat);
+			this.loc = this.locationLngLat();
+			this.hyperspaceLanes = [hyperspaceLaneName];
+		}
+
+
+		// Node Data
+		// { _id: 5a790632c0fbe900456f3668,
+		//   system: 'Foxtrot Thesh',
+		//   loc: [ 71.59469, -21.978631 ],
+		//   __v: 0,
+		//   nodeId: 56097,
+		//   hyperspaceLanes: [ 'Gamma Cherek 1' ],
+		//   xGalacticLong: 7969.884135077762,
+		//   yGalacticLong: -2502.6379866982224,
+		//   lat: -21.978631,
+		//   lng: 71.59469
+		// }
+
+
+		// {
+		// 	_id: 5a7907871ac1520043b495de,
+		// 	system: 'Korriban',
+		// 	region: 'Outer Rim',
+		// 	coordinates: 'R5',
+		// 	xGalactic: 9254.62,
+		// 	yGalactic: 6991.44,
+		// 	xGalacticLong: 9254.62308021,
+		// 	yGalacticLong: 6991.44061642,
+		// 	zoom: 0,
+		// 	link: 'http://starwars.wikia.com/wiki/Korriban',
+		// 	__v: 0,
+		// 	lat: 53.045619,
+		// 	lng: 83.135694,
+		// 	LngLat: [ 83.135694, 53.045619 ],
+		// 	hasLocation: true,
+		// 	sector: [ 'Sith Worlds' ] 
+		// }
+
+
+	}
+
+	locationLngLat() {
+		return [this.lng, this.lat];
+	}
+
+	// addHyperspaceLane(laneName) {
+	// 	this.hyperspaceLane = laneName;
+	// }
+
+	nodeDataObject() {
+		return {
+			system : this.system,
+			lat : this.lat,
+			lng : this.lng,
+			xGalacticLong :  this.xGalacticLong,
+			yGalacticLong :  this.yGalacticLong,
+			loc : this.locationLngLat(),
+			nodeId: this.nodeId,
+			hyperspaceLanes: this.hyperspaceLanes
+		};
+	}
+};
+
+
+function getGalacticYFromLatitude(latitude) {
+  return  (-3.07e-19*(latitude**12)) + (-1.823e-18*(latitude**11)) + (4.871543e-15*(latitude**10)) + (4.1565807e-14*(latitude**9)) + (-2.900986202e-11 * (latitude**8)) + (-1.40444283864e-10*(latitude**7)) + (7.9614373223054e-8*(latitude**6)) + (7.32976568692443e-7*(latitude**5)) + (-0.00009825374539548058*(latitude**4)) + (0.005511093818675318*(latitude**3)) + (0.04346753629461727 * (latitude**2)) + (111.30155374684914 * latitude);
+}
+
+function getGalacticXFromLongitude(longitude) {
+  return (111.3194866138503 * longitude);
+}
+
+function genRandFiveDigit() {
+  return Math.floor(Math.random()*89999+10000);
+}
+
+
+
+
+module.exports.NodeDataBuilder = NodeDataBuilder;
+
+
 class HyperSpacePath {
 	constructor(start, end, length, jumps, nodes, hashValue = '', numberOfJumps = null) {
 		this.start = start;

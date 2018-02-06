@@ -161,77 +161,55 @@ const createHyperspaceNode = (HyperspaceNodeCurrent, cb) => {
 		});
 };
 
+
 const createHyperspaceNodeAsync = async (HyperspaceNodeCurrent) => {
-
-	// HyperspaceNodeModel.find({lat: HyperspaceNodeCurrent.lat, lng: HyperspaceNodeCurrent.lng}).exec()
-	// 	.then(hyperspaceNodeData => {
-	// 		if(hyperspaceNodeData.length == 0) {
-	// 			HyperspaceNodeModel.create(HyperspaceNodeCurrent).exec()
-	// 				.then(hyperspaceNodeCreationResult => {
-	// 					cb(null, null);
-	// 				}).catch(errorCreatingNode => {
-	// 					console.log("error adding hyperspace node to database: ", errorCreatingNode);
-	// 					cb(error, null);
-	// 				});
-	// 		} else {
-	// 			const result = hyperspaceNodeData[0];
-	// 			const foundHyperspaceLane = HyperspaceNodeCurrent.hyperspaceLanes[0];
-	// 			let updatedHyperlanes = [];
-	// 			if(!result.hyperspaceLanes.includes(foundHyperspaceLane)) {
-	// 				updatedHyperlanes = HyperspaceNodeCurrent.hyperspaceLanes.concat(result.hyperspaceLanes);
-	// 				HyperspaceNodeModel.findOneAndUpdate({system: result.system}, {hyperspaceLanes: updatedHyperlanes}, {new: true}).exec().then(nodeAddedData => {
-	// 						console.log("Hyperspace Node has added hyperspace lane: ", nodeAddedData);
-	// 						cb(null, null);
-	// 				}).catch(errNodeAdd => {
-	// 						console.log("error adding node: ", errNodeAdd);
-	// 						cb(errNodeAdd, null);
-	// 				});
-	// 			} else {
-	// 				if(result.system !== HyperspaceNodeCurrent.system) {
-	// 					console.log("\nresult.system: ", result.system);
-	// 					console.log("HyperspaceNodeCurrent.system: ", HyperspaceNodeCurrent.system);
-	// 					cb(null, result.system);
-	// 				} else {
-	// 					cb(null, null);
-	// 				}
-	// 			}
-	// 		}
-	// 	}).catch(hyperspaceNodeError => {
-	// 		cb(err, null);
-	// 	});
-
 	try {
-		console.log("Start hyperspace node creation");
-		const hyperspaceNodeData = await HyperspaceNodeModel.find({
-			lat: HyperspaceNodeCurrent.lat,
-			lng: HyperspaceNodeCurrent.lng
-		}).exec();
-		console.log("hyperspaceNodeData: ", hyperspaceNodeData);
-
-		if(hyperspaceNodeData.length == 0) {
-			return await HyperspaceNodeModel.create(HyperspaceNodeCurrent);
-		} else {
-			const result = hyperspaceNodeData[0];
-			const foundHyperspaceLane = HyperspaceNodeCurrent.hyperspaceLanes[0];
-			let updatedHyperlanes = [];
-			if(!result.hyperspaceLanes.includes(foundHyperspaceLane)) {
-				updatedHyperlanes = HyperspaceNodeCurrent.hyperspaceLanes.concat(result.hyperspaceLanes);
-				return await HyperspaceNodeModel.findOneAndUpdate({system: result.system}, {hyperspaceLanes: updatedHyperlanes}, {new: true}).exec();
-			} else {
-				if(result.system !== HyperspaceNodeCurrent.system) {
-					console.log("\nresult.system: ", result.system);
-					console.log("HyperspaceNodeCurrent.system: ", HyperspaceNodeCurrent.system);
-					return result.system;
-				} else {
-					return {};
-				}
-			}
-		}
+		return await HyperspaceNodeModel.create(HyperspaceNodeCurrent);
 	} catch(err) {
-		console.log("error creating hyperspace node: ", err);
+		// console.log("error creating hyperspace node: ", err);
 		throw new Error(400);
 	}
 };
+
+
+// const createHyperspaceNodeAsync = async (HyperspaceNodeCurrent) => {
+
+// 	try {
+// 		const hyperspaceNodeData = await HyperspaceNodeModel.find({
+// 			lat: HyperspaceNodeCurrent.lat,
+// 			lng: HyperspaceNodeCurrent.lng
+// 		}).exec();
+
+// 		if(hyperspaceNodeData.length == 0) {
+// 			return await HyperspaceNodeModel.create(HyperspaceNodeCurrent);
+// 		} else {
+// 			const result = hyperspaceNodeData[0];
+
+// 			// if(result.system === undefined) {
+// 			// 	console.log("\nresult.system: ", result.system);
+// 			// 	console.log("HyperspaceNodeCurrent: ", HyperspaceNodeCurrent);
+// 			// }
+// 			// console.log("Hyperspace Lane: ", HyperspaceNodeCurrent.hyperspaceLanes);
+
+// 			const foundHyperspaceLane = HyperspaceNodeCurrent.hyperspaceLanes[0];
+// 			let updatedHyperlanes = [];
+// 			if(!result.hyperspaceLanes.includes(foundHyperspaceLane) && result.system === undefined) {
+// 				updatedHyperlanes = HyperspaceNodeCurrent.hyperspaceLanes.concat(result.hyperspaceLanes);
+// 				return await HyperspaceNodeModel.findOneAndUpdate({system: result.system}, {hyperspaceLanes: updatedHyperlanes}, {new: true}).exec();
+// 			} else {
+// 				if(result.system !== HyperspaceNodeCurrent.system) {
+
+// 					return result.system;
+// 				} else {
+// 					return ;
+// 				}
+// 			}
+// 		}
+// 	} catch(err) {
+// 		// console.log("error creating hyperspace node: ", err);
+// 		throw new Error(400);
+// 	}
+// };
 
 const findHyperspaceNodeAndUpdate = async (SearchItem, UpdateItem) => {
 	try {
