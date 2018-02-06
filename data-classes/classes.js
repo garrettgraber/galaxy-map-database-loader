@@ -199,6 +199,14 @@ class Point {
 		this.lng = coordinates[0];
 		this.lat = coordinates[1];
 		this.coordinates = coordinates;
+
+		if(isNaN(this.lng)){
+			console.log("lng is not a number: ", this.lng);
+		}
+
+		if(isNaN(this.lat)){
+			console.log("lat is not a number: ", this.lat);
+		}
 	}
 
 	locationObject() {

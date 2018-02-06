@@ -19,6 +19,8 @@ const Alphabets = require('./data-classes/alphabets.js');
 
 const writeToDatabaseGlobal = true;
 let systemsNotInAppendix = 0;
+let totalPlanetNodesCreated = 0;
+let totalEmptySpaceNodesCreated = 0;
 
 const MongoController = require('./controllers/mongo-async-controller.js');
 
@@ -255,6 +257,9 @@ async function getDatabaseStatsAsync() {
 		console.log("Total Sectors: ", TotalSectors);
 		console.log("Total Hyperspace Nodes: ", TotalHyperspaceNodes);
 		console.log("Total Hyperspace Lanes: ", TotalHyperspaceLanes);
+		console.log("Total Planets that are Nodes: ", totalPlanetNodesCreated);
+		console.log("Total Empty Space Nodes: ", totalEmptySpaceNodesCreated);
+		console.log("Total Nodes Created: ", totalPlanetNodesCreated + totalEmptySpaceNodesCreated);
 
 	} catch(err) {
 		throw new Error(err);
@@ -322,62 +327,26 @@ async function loadPlanetAsync(planet) {
 	}
 };
 
-
-
-
-async function findIfNodeExits(CurrentPoint) {
-	try {
-		const resultPlanet = await MongoController.findOnePlanet({LngLat: CurrentPoint.coordinates});
-		const resultNode = await MongoController.findOneHyperspaceNodeAsync({
-			lat: CurrentPoint.lat,
-			lng: CurrentPoint.lng
-		});
-		if(resultPlanet.doc && resultPlanet.status && resultNode === null) {
-			return new NodeDataBuilder(resultPlanet.doc, true, false);
-		} else {
-			if(resultNode === null) {
-				return new NodeDataBuilder(null, false, false);
-			} else {
-				return new NodeDataBuilder(resultNode, false, true);
-			}
-		}
-	} catch(err) {
-		throw new Error(err);
-	}
-};
-
-async function buildNode(NodeData, CurrentAlphabet) {
-	try {
-		return await MongoController.createHyperspaceNodeAsync(NodeData.nodeDataObject());
-	} catch(err) {
-		throw new Error(err);
-	}
-};
-
 async function findOrCreateNode(CurrentPoint, hyperspaceLaneName) {
 	try {
 		const resultNode = await MongoController.findOneHyperspaceNodeAsync(CurrentPoint.locationObject());
-		// console.log("hyperspace lane: ", hyperspaceLaneName);
-
 		if(resultNode !== null) {
-
 			let nodeHyperspaceLanes = resultNode.hyperspaceLanes;
-			// console.log("nodeHyperspaceLanes: ", nodeHyperspaceLanes);
-
-			if(nodeHyperspaceLanes === undefined) {
-				nodeHyperspaceLanes = [hyperspaceLaneName];
-			} else {
-				nodeHyperspaceLanes.push(hyperspaceLaneName);
-			}
-			
-			return await MongoController.findHyperspaceNodeAndUpdate(CurrentPoint.locationObject(), {hyperspaceLanes: nodeHyperspaceLanes});
+			nodeHyperspaceLanes.push(hyperspaceLaneName);
+			return await MongoController.findHyperspaceNodeAndUpdate({system: resultNode.system}, {hyperspaceLanes: nodeHyperspaceLanes});
 		} else {
-
-			const resultPlanet = await MongoController.findOnePlanet({LngLat: CurrentPoint.coordinates});			
+			const resultPlanet = await MongoController.findOnePlanet(CurrentPoint.locationObject());			
 			const planetFound = resultPlanet.doc && resultPlanet.status;
-			const NodeData = (planetFound)? new NodeDataBuilder(resultPlanet.doc, true, false) : new NodeDataBuilder(null, false, false);
-			NodeData.createNodeData(CurrentPoint, hyperspaceLaneName, Alphabets);
 
+			if(planetFound) {
+				var NodeData = new NodeDataBuilder(resultPlanet.doc, true, false);
+				totalPlanetNodesCreated++;	
+			} else {
+				var NodeData = new NodeDataBuilder(null, false, false);
+				totalEmptySpaceNodesCreated++;
+			}
+	
+			NodeData.createNodeData(CurrentPoint, hyperspaceLaneName, Alphabets);
 			return await MongoController.createHyperspaceNodeAsync(NodeData.nodeDataObject());
 		}
 	} catch(err) {
@@ -385,47 +354,20 @@ async function findOrCreateNode(CurrentPoint, hyperspaceLaneName) {
 	}
 };
 
-async function buildLane(hyperspaceLane) {
+async function buildLaneAsync(hyperspaceLane) {
 	try {
-		let hyperspaceLaneProps = hyperspaceLane.properties;
+		const hyperspaceLaneProps = hyperspaceLane.properties;
 		let hyperspaceLaneName = hyperspaceLaneProps.hyperspace;
-		// console.log("hyperspaceLaneName initial: ", hyperspaceLaneName);
-
 		if(hyperspaceLaneName === null || hyperspaceLaneName === undefined) {
 			hyperspaceLaneName = Alphabets.findLaneName();
 		}
-
-		let hyperspaceCoordinates = _.flattenDepth(hyperspaceLane.geometry.coordinates, 1);
-		let startCoordinates = hyperspaceCoordinates[0];
-		let endCoordintes = hyperspaceCoordinates[ hyperspaceCoordinates.length - 1 ];
-
-		let StartPoint = new Point(startCoordinates);
-		let EndPoint = new Point(endCoordintes);
-
-
-
-		// let StartResult = await findOrCreateNode(StartPoint);
-		// let EndResult = await findIfNodeExits(EndPoint);
-
-		// StartResult.createNodeData(Alphabets, hyperspaceLaneName);
-		// EndResult.createNodeData(Alphabets, hyperspaceLaneName);
-
-		// // console.log("hyperspaceLaneName: ", hyperspaceLaneName);
-		// // StartResult.addHyperspaceLane(hyperspaceLaneName);
-		// // EndResult.addHyperspaceLane(hyperspaceLaneName);
-
-		// StartResult = await buildNode(StartResult, Alphabets);
-		// EndResult = await buildNode(EndResult, Alphabets);
-
-
+		const hyperspaceCoordinates = _.flattenDepth(hyperspaceLane.geometry.coordinates, 1);
+		const startCoordinates = hyperspaceCoordinates[0];
+		const endCoordintes = hyperspaceCoordinates[ hyperspaceCoordinates.length - 1 ];
+		const StartPoint = new Point(startCoordinates);
+		const EndPoint = new Point(endCoordintes);
 		const StartResult = await findOrCreateNode(StartPoint, hyperspaceLaneName);
 		const EndResult = await findOrCreateNode(EndPoint, hyperspaceLaneName);
-
-
-		// console.log("StartResult: ", StartResult);
-		// console.log("EndResult: ", EndResult)
-
-
 		const hyperspaceHash = uuidv4();
 		const SpaceLane = new HyperSpaceLane(
 			hyperspaceLaneName,  // name
@@ -440,7 +382,9 @@ async function buildLane(hyperspaceLane) {
 			null, // Default End Node, Comes from Graph Database
 			hyperspaceCoordinates
 		);
-		return await MongoController.createHyperspaceLane(SpaceLane);
+		const CreateHyperspaceLaneResult await MongoController.createHyperspaceLane(SpaceLane);
+		return CreateHyperspaceLaneResult;
+
 	} catch (err) {
 		throw new Error(err);
 	}
@@ -450,22 +394,17 @@ async function loadHyperspaceLanesAsync() {
 	try {
 		console.log("loading hyperspace lanes...");
 		const HyperspaceLanes = JSON.parse(fs.readFileSync('./data/hyperspace.geojson', 'utf8'));
-
-		// let totalHyperspaceLanes = 0;
-		// let totalPlanetToPlanetLanes = 0;
-		// let totalPlanetToEmptyLanes = 0;
-		// let totalEmptyToEmptyLanes = 0;
-
-	  const HyperspaceLanesLoadResult = await Promise.all(HyperspaceLanes.features.map(buildLane));
-
-	  // console.log("HyperspaceLanesLoadResult: ", HyperspaceLanesLoadResult);
-
-	  return HyperspaceLanesLoadResult;
-
+	  return await Promise.map(HyperspaceLanes.features, lane => { 
+	    return buildLaneAsync(lane);
+	  }, 
+	    {
+	      concurrency: 1
+	    }
+	  );
 	} catch(err) {
 		throw new Error(err);
 	}
-}
+};
 
 
 
