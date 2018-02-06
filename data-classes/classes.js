@@ -243,13 +243,13 @@ class NodeDataBuilder {
 			this.loc = this.locationLngLat();
 			this.hyperspaceLanes = [hyperspaceLaneName];
 		} else if(this.planetExists && !this.nodeExists) {
-			this.nodeId = genRandFiveDigit();
+			// this.nodeId = genRandFiveDigit();
 			this.hyperspaceLanes = [hyperspaceLaneName];
 		} else if(!this.planetExists && this.nodeExists) {
-			this.nodeId = this.nodeId;
+			// this.nodeId = this.nodeId;
 			this.hyperspaceLanes = this.doc.hyperspaceLanes.concat([hyperspaceLaneName]);
 		} else if(!this.planetExists && !this.nodeExists) {
-			this.nodeId = genRandFiveDigit();
+			// this.nodeId = genRandFiveDigit();
 			this.system = AlphabetCurrent.findNodeName();
 			this.lat = CurrentPoint.lat;
 			this.lng = CurrentPoint.lng;
@@ -312,7 +312,7 @@ class NodeDataBuilder {
 			xGalacticLong :  this.xGalacticLong,
 			yGalacticLong :  this.yGalacticLong,
 			loc : this.locationLngLat(),
-			nodeId: this.nodeId,
+			// nodeId: this.nodeId,
 			hyperspaceLanes: this.hyperspaceLanes
 		};
 	}
