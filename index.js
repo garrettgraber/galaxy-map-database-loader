@@ -382,7 +382,7 @@ async function buildLaneAsync(hyperspaceLane) {
 			null, // Default End Node, Comes from Graph Database
 			hyperspaceCoordinates
 		);
-		const CreateHyperspaceLaneResult await MongoController.createHyperspaceLane(SpaceLane);
+		const CreateHyperspaceLaneResult = await MongoController.createHyperspaceLane(SpaceLane);
 		return CreateHyperspaceLaneResult;
 
 	} catch (err) {
