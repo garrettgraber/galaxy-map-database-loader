@@ -339,14 +339,16 @@ async function findOrCreateNode(CurrentPoint, hyperspaceLaneName) {
 			const planetFound = resultPlanet.doc && resultPlanet.status;
 
 			if(planetFound) {
-				var NodeData = new NodeDataBuilder(resultPlanet.doc, true, false);
+				var NodeData = new NodeDataBuilder();
+				NodeData.createPlanetNode(resultPlanet.doc, hyperspaceLaneName, Alphabets);
 				totalPlanetNodesCreated++;	
 			} else {
-				var NodeData = new NodeDataBuilder(null, false, false);
+				var NodeData = new NodeDataBuilder();
+				NodeData.createEmptySpaceNode(CurrentPoint, hyperspaceLaneName, Alphabets);
 				totalEmptySpaceNodesCreated++;
 			}
 	
-			NodeData.createNodeData(CurrentPoint, hyperspaceLaneName, Alphabets);
+			// NodeData.createNodeData(CurrentPoint, hyperspaceLaneName, Alphabets);
 			return await MongoController.createHyperspaceNodeAsync(NodeData.nodeDataObject());
 		}
 	} catch(err) {

@@ -1,6 +1,7 @@
 const _ = require('lodash'),
 	uuidv1 = require('uuid/v1'),
   uuidv4 = require('uuid/v4'),
+  Geohash = require('latlon-geohash'),
   hash = require('string-hash');
 
 class Planet {
@@ -108,7 +109,6 @@ class Planet {
 
 module.exports.Planet = Planet;
 
-
 class HyperSpaceLane {
 	constructor(
 		name,
@@ -192,8 +192,6 @@ class HyperSpaceNode {
 
 module.exports.HyperSpaceNode = HyperSpaceNode;
 
-
-
 class Point {
 	constructor(coordinates) {
 		this.lng = coordinates[0];
@@ -219,45 +217,102 @@ class Point {
 
 module.exports.Point = Point;
 
-
 class NodeDataBuilder {
-	constructor(doc, planetExists, nodeExists) {
-		this.doc = doc;
-		this.planetExists = planetExists;
-		this.nodeExists = nodeExists;
+	constructor() {}
+
+	hashPrecision() {
+		const hashPrecisionValue = 22;
+		return hashPrecisionValue;
 	}
 
 	docIsNull() {
 		return (this.doc === null)? true : false;
 	}
 
-	createNodeData(CurrentPoint, hyperspaceLaneName, AlphabetCurrent) {
-		// console.log("Doc is null: ", this.docIsNull());
+	locationLngLat() {
+		return [this.lng, this.lat];
+	}
 
-		if(this.planetExists || this.nodeExists) {
-			this.system = this.doc.system;
-			this.lat = this.doc.lat;
-			this.lng = this.doc.lng;
-			this.xGalacticLong =  this.doc.xGalacticLong;
-			this.yGalacticLong =  this.doc.yGalacticLong;
-			this.loc = this.locationLngLat();
-			this.hyperspaceLanes = [hyperspaceLaneName];
-		} else if(this.planetExists && !this.nodeExists) {
-			// this.nodeId = genRandFiveDigit();
-			this.hyperspaceLanes = [hyperspaceLaneName];
-		} else if(!this.planetExists && this.nodeExists) {
-			// this.nodeId = this.nodeId;
-			this.hyperspaceLanes = this.doc.hyperspaceLanes.concat([hyperspaceLaneName]);
-		} else if(!this.planetExists && !this.nodeExists) {
-			// this.nodeId = genRandFiveDigit();
+	setUpLaneLocation(hyperspaceLaneName) {
+		this.loc = this.locationLngLat();
+		this.hyperspaceLanes = [hyperspaceLaneName];
+		this.geoHash = Geohash.encode(this.lat, this.lng, this.hashPrecision());
+	}
+
+	createPlanetNode(doc, hyperspaceLaneName, AlphabetCurrent) {
+		if(doc.system === null) {
+			console.log("this.system is null in createPlanetNode: ", doc.system);
 			this.system = AlphabetCurrent.findNodeName();
-			this.lat = CurrentPoint.lat;
-			this.lng = CurrentPoint.lng;
-			this.xGalacticLong = getGalacticXFromLongitude(this.lng);
-			this.yGalacticLong = getGalacticYFromLatitude(this.lat);
-			this.loc = this.locationLngLat();
-			this.hyperspaceLanes = [hyperspaceLaneName];
+		} else {
+			this.system = doc.system;
 		}
+
+		this.lat = doc.lat;
+		this.lng = doc.lng;
+		this.xGalacticLong =  doc.xGalacticLong;
+		this.yGalacticLong =  doc.yGalacticLong;
+		this.setUpLaneLocation(hyperspaceLaneName);
+
+		if(this.system === null) {
+			console.log("this.system is null in createPlanetNode: ", this.system);
+		}
+	}
+
+	createEmptySpaceNode(CurrentPoint, hyperspaceLaneName, AlphabetCurrent) {
+		this.system = AlphabetCurrent.findNodeName();
+		this.lat = CurrentPoint.lat;
+		this.lng = CurrentPoint.lng;
+		this.xGalacticLong = getGalacticXFromLongitude(this.lng);
+		this.yGalacticLong = getGalacticYFromLatitude(this.lat);
+		this.setUpLaneLocation(hyperspaceLaneName);
+
+
+		if(this.system === null) {
+			console.log("this.system is null in createEmptySpaceNode: ", this.system);
+		}
+
+	}
+
+	addHyperspaceLane(hyperspaceLaneName) {
+		const currentHyperspaceLanes = _.clone(this.hyperspaceLanes);
+		this.hyperspaceLanes = currentHyperspaceLanes.push(hyperspaceLaneName);
+	}
+
+	// createNodeData(CurrentPoint, hyperspaceLaneName, AlphabetCurrent) {
+	// 	// console.log("Doc is null: ", this.docIsNull());
+
+	// 	this.lat = CurrentPoint.lat;
+	// 	this.lng = CurrentPoint.lng;
+	// 	this.loc = this.locationLngLat();
+
+	// 	const hashPrecision = 22;
+
+	// 	if(this.planetExists || this.nodeExists) {
+	// 		this.system = this.doc.system;
+	// 		this.lat = this.doc.lat;
+	// 		this.lng = this.doc.lng;
+	// 		this.xGalacticLong =  this.doc.xGalacticLong;
+	// 		this.yGalacticLong =  this.doc.yGalacticLong;
+	// 		this.loc = this.locationLngLat();
+	// 		this.hyperspaceLanes = [hyperspaceLaneName];
+	// 		this.geoHash = Geohash.encode(this.lat, this.lng, hashPrecision);
+	// 	} else if(this.planetExists && !this.nodeExists) {
+	// 		// this.nodeId = genRandFiveDigit();
+	// 		this.hyperspaceLanes = [hyperspaceLaneName];
+	// 	} else if(!this.planetExists && this.nodeExists) {
+	// 		// this.nodeId = this.nodeId;
+	// 		this.hyperspaceLanes = this.doc.hyperspaceLanes.concat([hyperspaceLaneName]);
+	// 	} else if(!this.planetExists && !this.nodeExists) {
+	// 		// this.nodeId = genRandFiveDigit();
+	// 		this.system = AlphabetCurrent.findNodeName();
+	// 		this.lat = CurrentPoint.lat;
+	// 		this.lng = CurrentPoint.lng;
+	// 		this.xGalacticLong = getGalacticXFromLongitude(this.lng);
+	// 		this.yGalacticLong = getGalacticYFromLatitude(this.lat);
+	// 		this.loc = this.locationLngLat();
+	// 		this.hyperspaceLanes = [hyperspaceLaneName];
+	// 		this.geoHash = Geohash.encode(this.lat, this.lng, hashPrecision);
+	// 	}
 
 
 		// Node Data
@@ -294,17 +349,14 @@ class NodeDataBuilder {
 		// }
 
 
-	}
-
-	locationLngLat() {
-		return [this.lng, this.lat];
-	}
+	// }
 
 	// addHyperspaceLane(laneName) {
 	// 	this.hyperspaceLane = laneName;
 	// }
 
 	nodeDataObject() {
+
 		return {
 			system : this.system,
 			lat : this.lat,
@@ -313,7 +365,8 @@ class NodeDataBuilder {
 			yGalacticLong :  this.yGalacticLong,
 			loc : this.locationLngLat(),
 			// nodeId: this.nodeId,
-			hyperspaceLanes: this.hyperspaceLanes
+			hyperspaceLanes: this.hyperspaceLanes,
+			geoHash: this.geoHash
 		};
 	}
 };

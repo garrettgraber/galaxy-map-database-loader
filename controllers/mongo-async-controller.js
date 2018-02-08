@@ -86,7 +86,8 @@ const HyperspaceNodeSchema = new Schema({
     xGalacticLong  : { type : Number , "default" : null },
     hyperspaceLanes: { type : Array , "default" : [] },
     nodeId         : { type : Number, "default" : null },
-    loc            : { type : Array, "default" : [] }
+    loc            : { type : Array, "default" : [] },
+    geoHash        : String
 });
 HyperspaceNodeSchema.set('autoIndex', true);
 HyperspaceNodeSchema.index({ loc: '2d' });
