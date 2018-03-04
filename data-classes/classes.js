@@ -181,11 +181,13 @@ function coordinateStringToArray(coordinates) {
 module.exports.HyperSpaceLane = HyperSpaceLane;
 
 class HyperSpaceNode {
-	constructor(system, lng, lat, hyperspaceLanes, nodeId = 0) {
+	constructor(system, lng, lat, hyperspaceLanes, emptySpace, zoom, nodeId = 0) {
 		this.system = system;
 		this.lng = lng;
 		this.lat = lat;
 		this.hyperspaceLanes = hyperspaceLanes;
+		this.emptySpace = emptySpace;
+		this.zoom = zoom;
 		this.nodeId = nodeId;
 	}
 };
@@ -246,13 +248,13 @@ class NodeDataBuilder {
 		} else {
 			this.system = doc.system;
 		}
-
 		this.lat = doc.lat;
 		this.lng = doc.lng;
 		this.xGalacticLong =  doc.xGalacticLong;
 		this.yGalacticLong =  doc.yGalacticLong;
+		this.zoom = doc.zoom;
+		this.emptySpace = false;
 		this.setUpLaneLocation(hyperspaceLaneName);
-
 		if(this.system === null) {
 			console.log("this.system is null in createPlanetNode: ", this.system);
 		}
@@ -265,12 +267,11 @@ class NodeDataBuilder {
 		this.xGalacticLong = getGalacticXFromLongitude(this.lng);
 		this.yGalacticLong = getGalacticYFromLatitude(this.lat);
 		this.setUpLaneLocation(hyperspaceLaneName);
-
-
+		this.zoom = 10;
+		this.emptySpace = true;
 		if(this.system === null) {
 			console.log("this.system is null in createEmptySpaceNode: ", this.system);
 		}
-
 	}
 
 	addHyperspaceLane(hyperspaceLaneName) {
@@ -278,95 +279,19 @@ class NodeDataBuilder {
 		this.hyperspaceLanes = currentHyperspaceLanes.push(hyperspaceLaneName);
 	}
 
-	// createNodeData(CurrentPoint, hyperspaceLaneName, AlphabetCurrent) {
-	// 	// console.log("Doc is null: ", this.docIsNull());
-
-	// 	this.lat = CurrentPoint.lat;
-	// 	this.lng = CurrentPoint.lng;
-	// 	this.loc = this.locationLngLat();
-
-	// 	const hashPrecision = 22;
-
-	// 	if(this.planetExists || this.nodeExists) {
-	// 		this.system = this.doc.system;
-	// 		this.lat = this.doc.lat;
-	// 		this.lng = this.doc.lng;
-	// 		this.xGalacticLong =  this.doc.xGalacticLong;
-	// 		this.yGalacticLong =  this.doc.yGalacticLong;
-	// 		this.loc = this.locationLngLat();
-	// 		this.hyperspaceLanes = [hyperspaceLaneName];
-	// 		this.geoHash = Geohash.encode(this.lat, this.lng, hashPrecision);
-	// 	} else if(this.planetExists && !this.nodeExists) {
-	// 		// this.nodeId = genRandFiveDigit();
-	// 		this.hyperspaceLanes = [hyperspaceLaneName];
-	// 	} else if(!this.planetExists && this.nodeExists) {
-	// 		// this.nodeId = this.nodeId;
-	// 		this.hyperspaceLanes = this.doc.hyperspaceLanes.concat([hyperspaceLaneName]);
-	// 	} else if(!this.planetExists && !this.nodeExists) {
-	// 		// this.nodeId = genRandFiveDigit();
-	// 		this.system = AlphabetCurrent.findNodeName();
-	// 		this.lat = CurrentPoint.lat;
-	// 		this.lng = CurrentPoint.lng;
-	// 		this.xGalacticLong = getGalacticXFromLongitude(this.lng);
-	// 		this.yGalacticLong = getGalacticYFromLatitude(this.lat);
-	// 		this.loc = this.locationLngLat();
-	// 		this.hyperspaceLanes = [hyperspaceLaneName];
-	// 		this.geoHash = Geohash.encode(this.lat, this.lng, hashPrecision);
-	// 	}
-
-
-		// Node Data
-		// { _id: 5a790632c0fbe900456f3668,
-		//   system: 'Foxtrot Thesh',
-		//   loc: [ 71.59469, -21.978631 ],
-		//   __v: 0,
-		//   nodeId: 56097,
-		//   hyperspaceLanes: [ 'Gamma Cherek 1' ],
-		//   xGalacticLong: 7969.884135077762,
-		//   yGalacticLong: -2502.6379866982224,
-		//   lat: -21.978631,
-		//   lng: 71.59469
-		// }
-
-
-		// {
-		// 	_id: 5a7907871ac1520043b495de,
-		// 	system: 'Korriban',
-		// 	region: 'Outer Rim',
-		// 	coordinates: 'R5',
-		// 	xGalactic: 9254.62,
-		// 	yGalactic: 6991.44,
-		// 	xGalacticLong: 9254.62308021,
-		// 	yGalacticLong: 6991.44061642,
-		// 	zoom: 0,
-		// 	link: 'http://starwars.wikia.com/wiki/Korriban',
-		// 	__v: 0,
-		// 	lat: 53.045619,
-		// 	lng: 83.135694,
-		// 	LngLat: [ 83.135694, 53.045619 ],
-		// 	hasLocation: true,
-		// 	sector: [ 'Sith Worlds' ] 
-		// }
-
-
-	// }
-
-	// addHyperspaceLane(laneName) {
-	// 	this.hyperspaceLane = laneName;
-	// }
-
 	nodeDataObject() {
-
 		return {
-			system : this.system,
-			lat : this.lat,
-			lng : this.lng,
-			xGalacticLong :  this.xGalacticLong,
-			yGalacticLong :  this.yGalacticLong,
-			loc : this.locationLngLat(),
-			// nodeId: this.nodeId,
-			hyperspaceLanes: this.hyperspaceLanes,
-			geoHash: this.geoHash
+			system          : this.system,
+			lat             : this.lat,
+			lng             : this.lng,
+			xGalacticLong   : this.xGalacticLong,
+			yGalacticLong   : this.yGalacticLong,
+			loc             : this.locationLngLat(),
+			// nodeId          : this.nodeId,
+			hyperspaceLanes : this.hyperspaceLanes,
+			geoHash 			  : this.geoHash,
+			zoom    			  : this.zoom,
+			emptySpace      : this.emptySpace
 		};
 	}
 };

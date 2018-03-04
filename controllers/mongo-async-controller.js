@@ -36,28 +36,22 @@ console.log("MONGO: ", MONGO);
 
 
 function connectToDatabase(cb) {
-
 	mongoose.connect(MONGO);
-
 	const db = mongoose.connection;
 	db.on('error', function(error) {
 		console.log('connection error:', error);
 		cb(error, {status: false, database:{}});
 	});
 	db.once('open', function() {
-	  // we're connected!
-	  	console.log("connected to mongo database ");
-
-
-	  	cb(null, {
-	  		status: true,
-	  		database: db,
-	  	});
+  	console.log("connected to mongo database ");
+  	cb(null, {
+  		status: true,
+  		database: db,
+  	});
 	});
 };
 
 const connectToMongo = Promise.promisify(connectToDatabase);
-
 
 const PlanetSchema = new Schema({
     system         : String,
@@ -87,7 +81,9 @@ const HyperspaceNodeSchema = new Schema({
     hyperspaceLanes: { type : Array , "default" : [] },
     nodeId         : { type : Number, "default" : null },
     loc            : { type : Array, "default" : [] },
-    geoHash        : String
+    geoHash        : String,
+    zoom					 : Number,
+    emptySpace     : Boolean
 });
 HyperspaceNodeSchema.set('autoIndex', true);
 HyperspaceNodeSchema.index({ loc: '2d' });
