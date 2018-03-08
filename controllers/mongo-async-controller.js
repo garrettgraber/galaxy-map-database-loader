@@ -97,6 +97,8 @@ const CoordinateModel = mongoose.model('CoordinateModel', CoordinateSchema);
 
 const SectorSchema = new Schema({
 	name: String,
+	coordinates: { type : Array , "default" : [] },
+	link: { type : String , "default" : '' }
 });
 SectorSchema.set('autoIndex', true);
 const SectorModel = mongoose.model('SectorModel', SectorSchema);
@@ -353,11 +355,36 @@ const createSector = async (sector) => {
 	}
 };
 
+const createSectorData = async (Sector) => {
+	try {
+		return await SectorModel.create(Sector);
+	} catch(err) {
+		console.log("error adding sector to database: ", err);
+	}
+};
+
 const totalSectors = async () => {
 	try {
 		return await SectorModel.count({}).exec();
 	} catch(err) {
 		console.log("error getting total sectors from the database: ", err);
+	}
+};
+
+
+const findSectorAsync = async (SearchItem) => {
+	try {
+		return await SectorModel.find(SearchItem).exec();
+	} catch(err) {
+		throw new Error(404);
+	}
+}
+
+const findSectorAndUpdate = async (SearchItem, UpdateItem) => {
+	try {
+		return await SectorModel.findOneAndUpdate(SearchItem, UpdateItem, {new: true}).exec();
+	} catch(err) {
+		console.log("error getting all planets: ", err);
 	}
 };
 
@@ -409,7 +436,10 @@ module.exports = {
 	totalHyperspaceLanes: totalHyperspaceLanes,
 	getAllHyperspaceLanes: getAllHyperspaceLanes,
 	createSector: createSector,
+	createSectorData: createSectorData,
 	createCoordinate: createCoordinate,
-	findHyperspaceLaneAndUpdateAsync: findHyperspaceLaneAndUpdateAsync
+	findHyperspaceLaneAndUpdateAsync: findHyperspaceLaneAndUpdateAsync,
+	findSectorAsync: findSectorAsync,
+	findSectorAndUpdate: findSectorAndUpdate
 };
 

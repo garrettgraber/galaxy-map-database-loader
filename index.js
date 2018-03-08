@@ -20,6 +20,8 @@ const writeToDatabaseGlobal = true;
 let systemsNotInAppendix = 0;
 let totalPlanetNodesCreated = 0;
 let totalEmptySpaceNodesCreated = 0;
+let sectorsUpdated = 0;
+let sectorsCreatedFromGeoJson = 0;
 
 const MongoController = require('./controllers/mongo-async-controller.js');
 
@@ -181,11 +183,16 @@ const loadDatabase = () => {
 					console.log("Coordinates from geojson success!");
 					loadHyperspaceLanesAsync().then(hyperspaceLaneResults => {
 						console.log("Hyperspace lane results: ", hyperspaceLaneResults.length);
-						getDatabaseStatsAsync().then(() => {
-							console.log("database stats displayed");
-							process.exit(1);
-						}).catch(errorStats => {
-							console.log("error displaying database stats: ", errorStats);
+						loadSectorDataAsync().then(sectorDataResults => {
+							console.log("Sector loading results: ", sectorDataResults.length);
+							getDatabaseStatsAsync().then(() => {
+								console.log("database stats displayed");
+								process.exit(1);
+							}).catch(errorStats => {
+								console.log("error displaying database stats: ", errorStats);
+							});
+						}).catch(sectorDataError => {
+							console.log("SectorData error: ", sectorDataError);
 						});
 					}).catch(hyperspaceLaneError => {
 						console.log("Error loading hyperspace lanes: ", hyperspaceLaneError);
@@ -212,6 +219,8 @@ async function getDatabaseStatsAsync() {
 		console.log("Total Coordinates: ", TotalCoordinates);
 		console.log("Total Planets with Location: ", TotalPlanetsWithLocation);
 		console.log("Total Sectors: ", TotalSectors);
+		console.log("Updated Sectors: ", sectorsUpdated);
+		console.log("Sectors Created from the Geo Json: ", sectorsCreatedFromGeoJson);
 		console.log("Total Hyperspace Nodes: ", TotalHyperspaceNodes);
 		console.log("Total Hyperspace Lanes: ", TotalHyperspaceLanes);
 		console.log("Total Planets that are Nodes: ", totalPlanetNodesCreated);
@@ -357,6 +366,57 @@ async function loadHyperspaceLanesAsync() {
 		throw new Error(err);
 	}
 };
+
+async function buildSectorAsync(Sector) {
+	try {
+		const sectorName = Sector.properties.sector;
+		const sectorLink = Sector.properties.link;
+		let coordinates = Sector.geometry.coordinates[0][0];
+		coordinates.splice(-1,1);
+		const coordinatesReversed = _.map(coordinates, coordinate => {
+			return coordinate.reverse();
+		});
+		const sectorData = await MongoController.findSectorAsync({name: sectorName});
+		// console.log("sectorData: ", sectorData);
+		if(sectorData.length > 0) {
+			var sectorUpdate = await MongoController.findSectorAndUpdate({
+				name: sectorName
+			}, {
+				coordinates: coordinatesReversed,
+				link: sectorLink
+			});
+			sectorsUpdated++;
+		} else {
+			var sectorUpdate = await MongoController.createSectorData({
+				name: sectorName,
+				coordinates: coordinatesReversed,
+				link: sectorLink
+			});
+			sectorsCreatedFromGeoJson++;
+		}
+
+		console.log("sectorUpdate: ", sectorUpdate);
+		return sectorName;
+	} catch (err) {
+		throw new Error(err);
+	}
+};
+
+async function loadSectorDataAsync() {
+	try {
+		console.log("loading sector data...");
+		const Sectors = JSON.parse(fs.readFileSync('./data/sector.geojson', 'utf8'));
+	  return await Promise.map(Sectors.features, Sector => { 
+	    return buildSectorAsync(Sector);
+	  }, 
+	    {
+	      concurrency: 1
+	    }
+	  );
+	} catch(err) {
+		throw new Error(err);
+	}
+}
 
 async function hyperlaneCorrectionAsync() {
 	try {
