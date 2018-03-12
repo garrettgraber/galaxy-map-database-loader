@@ -287,7 +287,9 @@ const findPlanetAndUpdate = async (SearchItem, UpdateItem) => {
 	try {
 		return await PlanetModel.findOneAndUpdate(SearchItem, UpdateItem, {new: true}).exec();
 	} catch(err) {
-		console.log("error getting all planets: ", err);
+		console.log("error updating planet: ", SearchItem);
+		console.log("update item: ", UpdateItem);
+		console.log("error: ", err);
 	}
 };
 
@@ -384,7 +386,7 @@ const findSectorAndUpdate = async (SearchItem, UpdateItem) => {
 	try {
 		return await SectorModel.findOneAndUpdate(SearchItem, UpdateItem, {new: true}).exec();
 	} catch(err) {
-		console.log("error getting all planets: ", err);
+		console.log("find sector and update error: ", err);
 	}
 };
 

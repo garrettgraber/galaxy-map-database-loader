@@ -245,6 +245,7 @@ function getCoordinatesFromGeoJsonAsync() {
 
 async function loadPlanetAsync(planet) {
 	try {
+		if(planet.properties.name === "") { return false }
 		const system = planet.properties.name;
 		const sector = [planet.properties.sector];
 		const region = planet.properties.region;
@@ -277,6 +278,7 @@ async function loadPlanetAsync(planet) {
 		);
 		const doc = await MongoController.findPlanetAndUpdate({system: system}, FocusedPlanet);
 		if(doc === null) {
+			console.log("Planet created: ", system);
 			const PlanetAdded = await MongoController.createPlanet(FocusedPlanet);
 			systemsNotInAppendix++;
 			return true;
