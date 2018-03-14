@@ -180,19 +180,19 @@ function coordinateStringToArray(coordinates) {
 
 module.exports.HyperSpaceLane = HyperSpaceLane;
 
-class HyperSpaceNode {
-	constructor(system, lng, lat, hyperspaceLanes, emptySpace, zoom, nodeId = 0) {
-		this.system = system;
-		this.lng = lng;
-		this.lat = lat;
-		this.hyperspaceLanes = hyperspaceLanes;
-		this.emptySpace = emptySpace;
-		this.zoom = zoom;
-		this.nodeId = nodeId;
-	}
-};
+// class HyperSpaceNode {
+// 	constructor(system, lng, lat, hyperspaceLanes, emptySpace, zoom, nodeId = 0) {
+// 		this.system = system;
+// 		this.lng = lng;
+// 		this.lat = lat;
+// 		this.hyperspaceLanes = hyperspaceLanes;
+// 		this.emptySpace = emptySpace;
+// 		this.zoom = zoom;
+// 		this.nodeId = nodeId;
+// 	}
+// };
 
-module.exports.HyperSpaceNode = HyperSpaceNode;
+// module.exports.HyperSpaceNode = HyperSpaceNode;
 
 class Point {
 	constructor(coordinates) {
@@ -250,8 +250,10 @@ class NodeDataBuilder {
 		}
 		this.lat = doc.lat;
 		this.lng = doc.lng;
-		this.xGalacticLong =  doc.xGalacticLong;
-		this.yGalacticLong =  doc.yGalacticLong;
+		this.xGalacticLong = doc.xGalacticLong;
+		this.yGalacticLong = doc.yGalacticLong;
+		this.xGalactic = doc.xGalactic;
+		this.yGalactic = doc.yGalactic;
 		this.zoom = doc.zoom;
 		this.emptySpace = false;
 		this.setUpLaneLocation(hyperspaceLaneName);
@@ -264,8 +266,12 @@ class NodeDataBuilder {
 		this.system = AlphabetCurrent.findNodeName();
 		this.lat = CurrentPoint.lat;
 		this.lng = CurrentPoint.lng;
-		this.xGalacticLong = getGalacticXFromLongitude(this.lng);
-		this.yGalacticLong = getGalacticYFromLatitude(this.lat);
+		const xGalactic = getGalacticXFromLongitude(this.lng);
+		const yGalactic = getGalacticYFromLatitude(this.lat);
+		this.xGalacticLong = xGalactic;
+		this.yGalacticLong = yGalactic;
+		this.xGalactic = xGalactic.toFixed(2);
+		this.yGalactic = yGalactic.toFixed(2);
 		this.setUpLaneLocation(hyperspaceLaneName);
 		this.zoom = 10;
 		this.emptySpace = true;
@@ -286,6 +292,8 @@ class NodeDataBuilder {
 			lng             : this.lng,
 			xGalacticLong   : this.xGalacticLong,
 			yGalacticLong   : this.yGalacticLong,
+			xGalactic       : this.xGalactic,
+			yGalactic       : this.yGalactic,
 			loc             : this.locationLngLat(),
 			// nodeId          : this.nodeId,
 			hyperspaceLanes : this.hyperspaceLanes,

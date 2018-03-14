@@ -11,7 +11,6 @@ const DatabaseLinks = require('docker-links').parseLinks(process.env);
 
 const Planet = require('./data-classes/classes.js').Planet;
 const HyperSpaceLane = require('./data-classes/classes.js').HyperSpaceLane;
-const HyperSpaceNode = require('./data-classes/classes.js').HyperSpaceNode;
 const NodeDataBuilder = require('./data-classes/classes.js').NodeDataBuilder;
 const Point = require('./data-classes/classes.js').Point;
 const Alphabets = require('./data-classes/alphabets.js');
@@ -252,8 +251,8 @@ async function loadPlanetAsync(planet) {
 		const coordinates = planet.properties.grid;
 		const xGalactic = planet.properties.x;
 		const yGalactic = planet.properties.y;
-		const xGalacticLong = planet.properties.point_x;
-		const yGalacticLong = planet.properties.point_y;
+		const xGalacticLong = planet.properties.x;
+		const yGalacticLong = planet.properties.y;
 		const LngLat = planet.geometry.coordinates;
 		const zoom = planet.properties.zm;
 		const link = planet.properties.link;

@@ -9,7 +9,6 @@ const Promise = require('bluebird');
 // const Schema = mongoose.Schema;
 
 const DatabaseLinks = require('docker-links').parseLinks(process.env);
-const Planet = require('../data-classes/classes.js').Planet;
 const HyperSpaceLane = require('../data-classes/classes.js').HyperSpaceLane;
 const Alphabets = require('../data-classes/alphabets.js');
 const Schema = mongoose.Schema;
@@ -76,6 +75,8 @@ const HyperspaceNodeSchema = new Schema({
     system         : String,
     lng            : { type : Number , "default" : null },
     lat            : { type : Number , "default" : null },
+    xGalactic      : { type : Number , "default" : null },
+    yGalactic      : { type : Number , "default" : null },
     yGalacticLong  : { type : Number , "default" : null },
     xGalacticLong  : { type : Number , "default" : null },
     hyperspaceLanes: { type : Array , "default" : [] },
