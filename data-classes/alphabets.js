@@ -72,6 +72,14 @@ const GreekAlphabet = [
 ];
 
 
+const HyperspaceLaneNames = [
+	"Hyperroute",
+	"Spacelane",
+	"Jump Route",
+	"Hyperway"
+];
+
+
 const MilitaryAlphabet = [
 	"Alice",
 	"Bravo",
@@ -103,6 +111,7 @@ const MilitaryAlphabet = [
 
 
 const Alphabets = {
+	HyperspaceNames: HyperspaceLaneNames,
 	Greek: GreekAlphabet,
 	Aurebesh: AurebeshAlphabet,
 	Military: MilitaryAlphabet
@@ -126,7 +135,7 @@ function generateRandomNodeName() {
 
 function generateRandomLaneName() {
 
-	for(let laneNamePrefix of Alphabets.Greek) {
+	for(let laneNamePrefix of Alphabets.HyperspaceNames) {
 
 		laneNamePrefix = capitalizeFirstLetter(laneNamePrefix);
 
@@ -170,6 +179,7 @@ const LaneNames = generateRandomLaneName();
 
 
 module.exports = {
+	HyperspaceNames: HyperspaceLaneNames,
 	Greek: GreekAlphabet,
 	Aurebesh: AurebeshAlphabet,
 	Military: MilitaryAlphabet,

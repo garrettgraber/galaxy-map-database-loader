@@ -21,6 +21,7 @@ let totalPlanetNodesCreated = 0;
 let totalEmptySpaceNodesCreated = 0;
 let sectorsUpdated = 0;
 let sectorsCreatedFromGeoJson = 0;
+let unamedHyperspaceLanes = 0;
 
 const MongoController = require('./controllers/mongo-async-controller.js');
 
@@ -225,6 +226,7 @@ async function getDatabaseStatsAsync() {
 		console.log("Total Planets that are Nodes: ", totalPlanetNodesCreated);
 		console.log("Total Empty Space Nodes: ", totalEmptySpaceNodesCreated);
 		console.log("Total Nodes Created: ", totalPlanetNodesCreated + totalEmptySpaceNodesCreated);
+		console.log("Total Lanes Created: ", unamedHyperspaceLanes);
 	} catch(err) {
 		throw new Error(err);
 	}
@@ -321,6 +323,7 @@ async function buildLaneAsync(hyperspaceLane) {
 		const hyperspaceLaneProps = hyperspaceLane.properties;
 		let hyperspaceLaneName = hyperspaceLaneProps.hyperspace;
 		if(hyperspaceLaneName === null || hyperspaceLaneName === undefined) {
+			unamedHyperspaceLanes++;
 			hyperspaceLaneName = Alphabets.findLaneName();
 		}
 		const hyperspaceCoordinates = _.flattenDepth(hyperspaceLane.geometry.coordinates, 1);
