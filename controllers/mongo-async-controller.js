@@ -1,12 +1,6 @@
 const mongoose = require('mongoose');
 const Promise = require('bluebird');
-
-
-// const DatabaseLinks = require('docker-links').parseLinks(process.env);
-// const Planet = require('../data-classes/planet.js');
-// const HyperSpaceLane = require('../data-classes/hyperspace-lane.js');
-// const Alphabets = require('../data-classes/alphabets.js');
-// const Schema = mongoose.Schema;
+mongoose.Promise = Promise;
 
 const DatabaseLinks = require('docker-links').parseLinks(process.env);
 const HyperSpaceLane = require('../data-classes/classes.js').HyperSpaceLane;
