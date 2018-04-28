@@ -185,11 +185,17 @@ const loadDatabase = () => {
 						console.log("Hyperspace lane results: ", hyperspaceLaneResults.length);
 						loadSectorDataAsync().then(sectorDataResults => {
 							console.log("Sector loading results: ", sectorDataResults.length);
-							getDatabaseStatsAsync().then(() => {
-								console.log("database stats displayed");
-								process.exit(1);
-							}).catch(errorStats => {
-								console.log("error displaying database stats: ", errorStats);
+							loadNodeIdsAsync().then(nodeIdLoadResults => {
+								console.log("Node Ids Loading Results: ", nodeIdLoadResults);
+								getDatabaseStatsAsync().then(() => {
+									console.log("database stats displayed");
+									process.exit(1);
+								}).catch(errorStats => {
+									console.log("error displaying database stats: ", errorStats);
+								});
+
+							}).catch(errorLoadingNodeIds => {
+								console.log("Error loading node ids: ", errorLoadingNodeIds);
 							});
 						}).catch(sectorDataError => {
 							console.log("SectorData error: ", sectorDataError);
@@ -206,6 +212,32 @@ const loadDatabase = () => {
 		console.log("error connecting to the mongo database: ", errorConnect);
 	});
 };
+
+async function loadNodeIdsAsync() {
+	try {
+		let nodeIdIntegrity = true;
+		const nodesSystemsIds = JSON.parse(fs.readFileSync('./data/nodesSystemsIds.json', 'utf8'));
+		const nodesFound = await MongoController.getAllHyperspaceNodes();
+		for(let CurrentNode of nodesFound) {
+			const FoundNode = _.filter(nodesSystemsIds, n => {
+				if(n.system === CurrentNode.system) {
+					return n;
+				}
+			});
+
+			if(FoundNode.length > 0) {
+				const foundNodeId = FoundNode[0].nodeId;
+				const NodeUpdated = await MongoController.findHyperspaceNodeAndUpdate({system: CurrentNode.system}, {nodeId: foundNodeId});
+			} else {
+				console.log("Node Id Not Found");
+				nodeIdIntegrity = false;
+			}
+		}
+		return nodeIdIntegrity;
+	} catch(err) {
+		throw new Error(err);
+	}
+}
 
 async function getDatabaseStatsAsync() {
 	try {
