@@ -381,7 +381,6 @@ async function buildLaneAsync(hyperspaceLane) {
 		);
 		const CreateHyperspaceLaneResult = await MongoController.createHyperspaceLane(SpaceLane);
 		return CreateHyperspaceLaneResult;
-
 	} catch (err) {
 		throw new Error(err);
 	}

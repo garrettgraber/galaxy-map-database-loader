@@ -18,7 +18,7 @@ if [ $? -eq 1 ]; then
 else
     echo "package.json is unchanged.";
 fi
-echo "Building map-express-server..."
+echo "Building planet-data-loader..."
 docker build -t planet-data-loader . 
 # docker build --no-cache -t planet-data-loader . 
 
