@@ -121,7 +121,8 @@ class HyperSpaceLane {
 		link,
 		_start,
 		_end,
-		coordinates
+		coordinates,
+		laneId
 		) {
 		this.name = name || "No Name";
 		this.hyperspaceHash = hyperspaceHash;
@@ -134,6 +135,7 @@ class HyperSpaceLane {
 		this._start = _start;
 		this._end = _end;
 		this.coordinates = coordinateStringToArray(coordinates);
+		this.laneId = laneId;
 	}
 
 
