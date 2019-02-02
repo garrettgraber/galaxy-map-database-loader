@@ -216,7 +216,6 @@ const loadDatabase = () => {
 async function loadNodeIdsAsync() {
 	try {
 		let nodeIdIntegrity = true;
-		const nodesSystemsIds = JSON.parse(fs.readFileSync('./data/nodesSystemsIds.json', 'utf8'));
 		const nodesFound = await MongoController.getAllHyperspaceNodes();
 		const nodesSorted = _.orderBy(nodesFound, ['system'], ['desc']);
 
@@ -245,7 +244,7 @@ async function loadNodeIdsAsync() {
 				nodeIdIntegrity = false;
 			}
 		}
-		
+
 		return nodeIdIntegrity;
 	} catch(err) {
 		throw new Error(err);
