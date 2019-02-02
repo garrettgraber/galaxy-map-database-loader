@@ -218,21 +218,34 @@ async function loadNodeIdsAsync() {
 		let nodeIdIntegrity = true;
 		const nodesSystemsIds = JSON.parse(fs.readFileSync('./data/nodesSystemsIds.json', 'utf8'));
 		const nodesFound = await MongoController.getAllHyperspaceNodes();
-		for(let CurrentNode of nodesFound) {
-			const FoundNode = _.filter(nodesSystemsIds, n => {
+		const nodesSorted = _.orderBy(nodesFound, ['system'], ['desc']);
+
+		const nodesWithIds = [];
+		for(let i=0; i < nodesSorted.length; i++) {
+			const CurrentNode = nodesSorted[i];
+			CurrentNode.nodeId = (i === nodesSorted.length - 1)? 0 : i + 1;
+			nodesWithIds[i] = CurrentNode;
+		}
+
+		for(let CurrentNode of nodesWithIds) {
+			const FoundNode = _.filter(nodesWithIds, n => {
 				if(n.system === CurrentNode.system) {
 					return n;
 				}
 			});
-
 			if(FoundNode.length > 0) {
 				const foundNodeId = FoundNode[0].nodeId;
-				const NodeUpdated = await MongoController.findHyperspaceNodeAndUpdate({system: CurrentNode.system}, {nodeId: foundNodeId});
+				const NodeUpdated = await MongoController.findHyperspaceNodeAndUpdate({
+					system: CurrentNode.system
+				}, {
+					nodeId: foundNodeId
+				});
 			} else {
-				console.log("Node Id Not Found");
+				console.log("Node Id Not Found: ", CurrentNode);
 				nodeIdIntegrity = false;
 			}
 		}
+		
 		return nodeIdIntegrity;
 	} catch(err) {
 		throw new Error(err);
